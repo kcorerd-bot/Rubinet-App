@@ -1,0 +1,2357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Rubinet"/>
+<meta name="theme-color" content="#0E0D0B"/>
+<meta name="description" content="Professional quoting tool for authorized Rubinet dealers"/>
+<link rel="manifest" href="rubinet-manifest.json"/>
+<title>Rubinet — Quote Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@200;300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --gold:#C4A35A;--gold-lt:#DFC08A;--gold-dk:#8A6E3A;--gold-dim:rgba(196,163,90,.1);--gold-border:rgba(196,163,90,.28);
+  --dark:#0E0D0B;--ink:#151310;--carbon:#1E1C18;--coal:#272420;
+  --stone:#5A5650;--pewter:#8A857E;--silver:#C2BAB0;--cream:#EAE4DA;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --success:#7ABD7E;--success-bg:rgba(74,124,78,.12);
+  --info:#7AAED4;--info-bg:rgba(58,90,124,.12);
+  --fd:'Cormorant Garamond',serif;--fb:'Jost',sans-serif;
+  --r:10px;--ease:cubic-bezier(.4,0,.2,1);
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bot:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;background:var(--dark);color:var(--cream);font-family:var(--fb);font-size:14px;line-height:1.6;overflow:hidden;-webkit-font-smoothing:antialiased}
+
+/* ── LAYOUT ── */
+.app{display:flex;height:100vh;height:100dvh;overflow:hidden;max-width:1300px;margin:0 auto}
+.sidebar{width:240px;background:var(--ink);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform .28s var(--ease)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:28px 22px 20px;border-bottom:1px solid var(--border)}
+.sb-brand{font-family:var(--fd);font-size:24px;font-weight:300;letter-spacing:.2em;color:#fff;text-transform:uppercase}
+.sb-tagline{font-size:9px;letter-spacing:.18em;color:var(--gold);text-transform:uppercase;margin-top:3px}
+.sb-sec{padding:18px 16px 6px;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--stone)}
+.ni{display:flex;align-items:center;gap:11px;padding:10px 16px;cursor:pointer;border-radius:7px;margin:1px 8px;color:var(--silver);font-size:12px;font-weight:300;letter-spacing:.04em;transition:all .18s;border:1px solid transparent}
+.ni:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+.ni.on{background:var(--gold-dim);color:var(--gold-lt);border-color:var(--gold-border);position:relative}
+.ni.on::before{content:'';position:absolute;left:0;top:20%;height:60%;width:2px;background:var(--gold);border-radius:0 2px 2px 0}
+.ni svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;opacity:.7}
+.ni.on svg{opacity:1}
+.sb-bottom{margin-top:auto;padding:16px;border-top:1px solid var(--border)}
+.sb-user{display:flex;align-items:center;gap:10px}
+.sb-av{width:36px;height:36px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:500;color:var(--gold-lt);flex-shrink:0;letter-spacing:.05em}
+.sb-un{font-size:12px;color:var(--silver);line-height:1.3}
+.sb-ur{font-size:10px;color:var(--stone);letter-spacing:.04em}
+
+/* ── MOBILE NAV (bottom) ── */
+.mob-nav{display:none;background:var(--ink);border-top:1px solid var(--border);padding:8px 0 calc(8px + var(--safe-bot));flex-shrink:0}
+.mob-nav-inner{display:flex;justify-content:space-around}
+.mob-tab{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:4px 12px;color:var(--stone);transition:color .15s;min-width:56px}
+.mob-tab.on{color:var(--gold-lt)}
+.mob-tab svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.mob-tab span{font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+.mob-fab{position:fixed;right:20px;bottom:calc(72px + var(--safe-bot));width:52px;height:52px;border-radius:50%;background:var(--gold);display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 20px rgba(196,163,90,.35);z-index:50;border:none;transition:transform .15s,opacity .15s}
+.mob-fab:active{transform:scale(.93)}
+.mob-fab svg{width:22px;height:22px;stroke:var(--dark);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── TOPBAR ── */
+.topbar{height:56px;background:var(--ink);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px 0 16px;gap:10px;flex-shrink:0;padding-top:var(--safe-top)}
+.tb-ham{display:none;background:none;border:none;cursor:pointer;padding:4px;color:var(--silver)}
+.tb-ham svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round}
+.tb-title{font-family:var(--fd);font-size:19px;font-weight:400;color:#fff;letter-spacing:.04em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:7px;cursor:pointer;font-family:var(--fb);font-size:11px;font-weight:500;letter-spacing:.07em;transition:all .18s;border:none;text-transform:uppercase;white-space:nowrap}
+.btn-gold{background:var(--gold);color:var(--dark)}.btn-gold:hover{background:var(--gold-lt)}
+.btn-ghost{background:none;color:var(--silver);border:1px solid var(--border2)}.btn-ghost:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+.btn-sm{padding:6px 11px;font-size:10px}
+.btn svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:22px;scrollbar-width:thin;scrollbar-color:var(--coal) transparent}
+.content::-webkit-scrollbar{width:3px}
+.content::-webkit-scrollbar-thumb{background:var(--coal);border-radius:2px}
+.panel{display:none}
+.panel.on{display:block;animation:fu .22s var(--ease)}
+@keyframes fu{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.prog-bar{height:2px;background:var(--border);flex-shrink:0}
+.prog-fill{height:100%;background:var(--gold);transition:width .32s var(--ease)}
+
+/* ── STATS ── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.stat-card{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;position:relative;overflow:hidden;transition:border-color .2s}
+.stat-card:hover{border-color:var(--gold-border)}
+.stat-card::after{content:'';position:absolute;top:0;right:0;width:44px;height:44px;border-radius:0 var(--r) 0 44px;background:var(--gold-dim)}
+.stat-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:7px}
+.stat-n{font-family:var(--fd);font-size:32px;font-weight:400;color:#fff;line-height:1}
+.stat-n.g{color:var(--gold)}
+.stat-d{font-size:11px;margin-top:4px;color:var(--success)}
+
+/* ── TABLES ── */
+.tbl{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:22px}
+.tbl-head{display:grid;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.tbl-head span{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.tbl-row{display:grid;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .13s;cursor:pointer;align-items:center}
+.tbl-row:last-child{border:none}
+.tbl-row:hover{background:rgba(255,255,255,.03)}
+.tbl-row span{font-size:12px;color:var(--silver)}
+.tbl-row .p{color:var(--cream);font-weight:400}
+.tbl-row .mf{font-family:var(--fd);font-size:15px;color:#fff}
+.tbl-row .g{color:var(--gold-lt)}
+.sec-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.sec-hd h3{font-family:var(--fd);font-size:18px;font-weight:400;color:#fff;letter-spacing:.03em}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;padding:3px 8px;border-radius:20px;letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.badge::before{content:'';width:4px;height:4px;border-radius:50%;flex-shrink:0}
+.b-ok{background:var(--success-bg);color:var(--success);border:1px solid rgba(74,124,78,.3)}.b-ok::before{background:var(--success)}
+.b-sent{background:var(--info-bg);color:var(--info);border:1px solid rgba(58,90,124,.3)}.b-sent::before{background:var(--info)}
+.b-draft{background:rgba(196,163,90,.12);color:var(--gold-lt);border:1px solid var(--gold-border)}.b-draft::before{background:var(--gold-lt)}
+.b-dec{background:rgba(124,58,58,.12);color:#C47A7A;border:1px solid rgba(124,58,58,.3)}.b-dec::before{background:#C47A7A}
+
+/* ── WIZARD ── */
+.step-body{padding:22px;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--coal) transparent}
+.step-body::-webkit-scrollbar{width:3px}
+.step-chip{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;font-weight:500}
+.step-h{font-family:var(--fd);font-size:28px;font-weight:400;color:#fff;margin-bottom:20px;letter-spacing:.02em}
+.field{margin-bottom:14px}
+.field label{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);display:block;margin-bottom:6px;font-weight:500}
+.field input,.field select,.field textarea{width:100%;padding:11px 14px;background:var(--carbon);border:1px solid var(--border2);border-radius:8px;font-family:var(--fb);font-size:13px;color:var(--cream);outline:none;transition:border-color .15s;appearance:none;font-weight:300}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--gold)}
+.field input::placeholder,.field textarea::placeholder{color:var(--stone)}
+.field textarea{resize:none;height:78px;line-height:1.6}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.cta{width:100%;padding:14px;background:var(--gold);color:var(--dark);border:none;border-radius:9px;font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:opacity .15s;margin-top:6px}
+.cta:hover{opacity:.88}
+.ghost{width:100%;padding:12px;background:none;color:var(--silver);border:1px solid var(--border2);border-radius:9px;font-family:var(--fb);font-size:12px;cursor:pointer;margin-top:10px;transition:background .15s;letter-spacing:.06em}
+.ghost:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+
+/* ── PRODUCTS ── */
+.cat-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:13px}
+.cat-pill{border:1px solid var(--border2);border-radius:20px;padding:5px 12px;font-size:11px;cursor:pointer;background:none;color:var(--stone);transition:all .15s;font-family:var(--fb)}
+.cat-pill.on{background:var(--coal);color:var(--cream);border-color:var(--border2)}
+.search-row{position:relative;margin-bottom:13px}
+.search-row input{width:100%;padding:11px 40px 11px 14px;background:var(--carbon);border:1px solid var(--border2);border-radius:8px;font-family:var(--fb);font-size:13px;color:var(--cream);outline:none;font-weight:300}
+.search-row input::placeholder{color:var(--stone)}
+.search-row input:focus{border-color:var(--gold)}
+.s-icon{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--stone);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.prod-list{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px;max-height:300px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--coal) transparent}
+.prod-list::-webkit-scrollbar{width:3px}
+.prod-list::-webkit-scrollbar-thumb{background:var(--coal)}
+.prod-row{display:flex;gap:11px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;align-items:center;transition:background .12s}
+.prod-row:last-child{border:none}
+.prod-row:hover{background:rgba(255,255,255,.03)}
+.prod-row.sel{background:var(--gold-dim);border-bottom:1px solid rgba(196,163,90,.15)}
+.prod-img-wrap{width:52px;height:52px;border-radius:9px;overflow:hidden;flex-shrink:0;border:1px solid var(--border)}
+.prod-img-wrap svg{width:100%;height:100%;display:block}
+.prod-name{font-size:13px;color:var(--cream);font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod-sku{font-size:10px;color:var(--stone);margin-top:1px;letter-spacing:.04em}
+.prod-price{font-family:var(--fd);font-size:17px;color:var(--gold-lt);white-space:nowrap}
+.prod-price-sub{font-size:10px;color:var(--stone);text-align:right;margin-top:1px}
+.sel-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .14s;background:none}
+.sel-dot.on{background:var(--gold);border-color:var(--gold)}
+.sel-dot svg{width:10px;height:10px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round;display:none}
+.sel-dot.on svg{display:block}
+.price-key{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.pk{font-size:10px;padding:3px 9px;border-radius:4px;letter-spacing:.04em}
+.pk-a{background:var(--gold-dim);color:var(--gold-lt);border:1px solid var(--gold-border)}
+.pk-b{background:rgba(255,255,255,.05);color:var(--silver);border:1px solid var(--border2)}
+
+/* ── FINISH SWATCHES ── */
+.swatch-grid{display:flex;flex-wrap:wrap;gap:9px;margin-top:8px}
+.swatch{width:33px;height:33px;border-radius:50%;cursor:pointer;border:2.5px solid transparent;transition:transform .15s,border-color .15s;position:relative}
+.swatch.on{border-color:var(--gold);transform:scale(1.15)}
+.swatch-tip{position:absolute;bottom:calc(100%+5px);left:50%;transform:translateX(-50%);background:var(--coal);color:var(--cream);font-size:10px;padding:3px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:20;font-family:var(--fb)}
+.swatch:hover .swatch-tip{opacity:1}
+.finish-name{font-size:11px;color:var(--gold-dk);margin-top:8px;font-weight:500;letter-spacing:.04em}
+
+/* ── CART ── */
+.cart-item{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:10px}
+.ci-top{display:flex;gap:11px;align-items:flex-start}
+.ci-img-wrap{width:60px;height:60px;border-radius:9px;overflow:hidden;flex-shrink:0;border:1px solid var(--border)}
+.ci-img-wrap svg{width:100%;height:100%;display:block}
+.ci-name{font-size:13px;color:var(--cream);font-weight:400;line-height:1.3}
+.ci-sub{font-size:11px;color:var(--stone);margin-top:3px}
+.ci-rm{background:none;border:none;cursor:pointer;color:var(--stone);font-size:18px;line-height:1;padding:0;margin-left:auto;transition:color .15s;flex-shrink:0}
+.ci-rm:hover{color:var(--cream)}
+.ci-footer{display:flex;justify-content:space-between;align-items:center;margin-top:11px;padding-top:11px;border-top:1px solid var(--border)}
+.qty-ctrl{display:flex;align-items:center;gap:10px}
+.qbtn{width:28px;height:28px;border-radius:50%;border:1px solid var(--border2);background:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--cream);transition:background .12s}
+.qbtn:hover{background:var(--coal)}
+.qval{font-size:13px;font-weight:500;min-width:18px;text-align:center;color:var(--cream)}
+.ci-retail{font-family:var(--fd);font-size:20px;color:#fff}
+.ci-dealer-price{font-size:10px;color:var(--stone);margin-top:1px}
+.add-more{width:100%;padding:12px;border:1px dashed var(--border2);border-radius:9px;background:none;cursor:pointer;font-size:12px;color:var(--stone);display:flex;align-items:center;justify-content:center;gap:8px;transition:background .12s;font-family:var(--fb)}
+.add-more:hover{background:rgba(255,255,255,.03);color:var(--cream)}
+
+/* ── SUMMARY ── */
+.sum-box{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin:14px 0}
+.sum-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
+.sum-row .l{color:var(--stone)}
+.sum-row .v{font-family:var(--fd);font-size:16px;color:var(--cream)}
+.sum-row .v.g{color:var(--gold-lt)}
+.sum-div{height:1px;background:var(--border);margin:11px 0}
+.sum-total{display:flex;justify-content:space-between;align-items:baseline}
+.sum-total .l{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-lt)}
+.sum-total .v{font-family:var(--fd);font-size:34px;font-weight:400;color:#fff}
+
+/* ── SEND ── */
+.send-opts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.send-opt{border:1.5px solid var(--border2);border-radius:var(--r);padding:14px;cursor:pointer;text-align:center;transition:all .15s;background:none}
+.send-opt.on{border-color:var(--gold);background:var(--gold-dim)}
+.send-opt svg{width:20px;height:20px;stroke:var(--stone);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin:0 auto 6px;display:block;transition:stroke .15s}
+.send-opt.on svg{stroke:var(--gold-lt)}
+.send-opt .lbl{font-size:12px;color:var(--stone);transition:color .15s}
+.send-opt.on .lbl{color:var(--gold-lt)}
+.send-opt .sub{font-size:10px;color:var(--stone);margin-top:2px}
+.send-full{border:1.5px solid var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;display:flex;align-items:center;gap:11px;transition:all .15s;background:none;margin-bottom:10px}
+.send-full.on{border-color:var(--gold);background:var(--gold-dim)}
+.send-full svg{width:18px;height:18px;stroke:var(--stone);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;transition:stroke .15s}
+.send-full.on svg{stroke:var(--gold-lt)}
+.send-full span{font-size:12px;color:var(--stone);transition:color .15s}
+.send-full.on span{color:var(--gold-lt)}
+
+/* ── SETTINGS ── */
+.settings-card{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;margin-bottom:16px}
+.settings-card h4{font-family:var(--fd);font-size:18px;font-weight:400;color:#fff;margin-bottom:4px;letter-spacing:.03em}
+.settings-card p{font-size:12px;color:var(--stone);margin-bottom:16px;line-height:1.6}
+.mult-display{font-family:var(--fd);font-size:48px;font-weight:400;color:var(--gold);text-align:center;line-height:1;margin:10px 0 4px}
+.mult-sub{font-size:11px;color:var(--stone);text-align:center;margin-bottom:14px}
+input[type=range]{width:100%;appearance:none;height:4px;border-radius:2px;background:var(--border2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border-radius:50%;background:var(--gold);cursor:pointer;border:2px solid var(--dark);transition:transform .14s}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+.range-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--stone);margin-top:5px}
+.mult-preview{background:var(--carbon);border:1px solid var(--border);border-radius:8px;padding:13px 15px;margin-top:13px}
+.mp-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+.mp-row:last-child{margin-bottom:0;padding-top:6px;border-top:1px solid var(--border)}
+.mp-row .ml{color:var(--stone)}
+.mp-row .mv{font-family:var(--fd);font-size:15px;color:var(--cream)}
+.mp-row .mv.g{color:var(--gold-lt)}
+.info-banner{background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:8px;padding:11px 13px;font-size:12px;color:var(--gold-lt);line-height:1.6;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start}
+.info-banner svg{width:14px;height:14px;stroke:var(--gold-lt);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0;margin-top:2px}
+
+/* ── SUCCESS ── */
+.success-wrap{padding:44px 28px;text-align:center;max-width:460px;margin:0 auto}
+.check-ring{width:78px;height:78px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:pop .4s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pop{from{transform:scale(0);opacity:0}to{transform:scale(1);opacity:1}}
+.check-ring svg{width:34px;height:34px;stroke:#fff;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.success-h{font-family:var(--fd);font-size:34px;font-weight:400;color:#fff;margin-bottom:8px}
+.success-p{font-size:13px;color:var(--pewter);line-height:1.7;margin-bottom:24px}
+.ref-box{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:26px}
+.ref-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:4px}
+.ref-n{font-family:var(--fd);font-size:28px;color:var(--gold)}
+.ref-sub{font-size:11px;color:var(--stone);margin-top:4px}
+
+/* ── PWA INSTALL BANNER ── */
+.install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--ink);border-top:1px solid var(--gold-border);padding:14px 18px calc(14px + var(--safe-bot));z-index:200;align-items:center;gap:14px;animation:slideUp .3s var(--ease)}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.install-banner.show{display:flex}
+.ib-icon{width:44px;height:44px;border-radius:10px;background:var(--dark);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ib-icon svg{width:22px;height:22px;stroke:var(--gold);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.ib-text{flex:1}
+.ib-title{font-size:14px;font-weight:500;color:var(--cream)}
+.ib-sub{font-size:11px;color:var(--stone);margin-top:2px}
+.ib-btns{display:flex;gap:8px;flex-shrink:0}
+.ib-install{padding:8px 14px;background:var(--gold);color:var(--dark);border:none;border-radius:7px;font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.06em}
+.ib-dismiss{padding:8px 10px;background:none;color:var(--stone);border:1px solid var(--border2);border-radius:7px;font-family:var(--fb);font-size:12px;cursor:pointer}
+
+/* ── PLACEHOLDER IMAGES ── */
+.ph-label{font-size:5px;font-family:var(--fb);letter-spacing:.08em;text-transform:uppercase;fill:rgba(196,163,90,.4);text-anchor:middle}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:calc(20px + var(--safe-bot));right:20px;background:var(--ink);border:1px solid var(--gold-border);border-radius:10px;padding:13px 18px;display:flex;align-items:center;gap:11px;font-size:13px;color:var(--cream);z-index:999;animation:slideIn .28s var(--ease);box-shadow:0 4px 24px rgba(0,0,0,.5)}
+.toast svg{width:17px;height:17px;stroke:var(--gold);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+@keyframes slideIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── CLIENT REVIEW SCREEN ── */
+.client-screen{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;z-index:2000;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--coal) transparent}
+.client-screen.hidden{display:none}
+.client-screen::-webkit-scrollbar{width:3px}
+.client-screen::-webkit-scrollbar-thumb{background:var(--coal)}
+.client-header{background:var(--ink);border-bottom:1px solid var(--gold-border);padding:22px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;flex-shrink:0}
+.client-logo{font-family:var(--fd);font-size:22px;font-weight:300;letter-spacing:.2em;color:#fff;text-transform:uppercase}
+.client-logo-tag{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-top:2px}
+.client-hero{padding:40px 28px 28px;max-width:680px;margin:0 auto;width:100%}
+.client-from{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--stone);margin-bottom:6px}
+.client-h{font-family:var(--fd);font-size:36px;font-weight:400;color:#fff;line-height:1.1;margin-bottom:6px}
+.client-sub{font-size:12px;color:var(--stone);margin-bottom:28px}
+.client-body{max-width:680px;margin:0 auto;padding:0 28px 60px;width:100%}
+.client-section{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.client-section-hd{padding:14px 18px;border-bottom:1px solid var(--border);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone)}
+.client-item{display:flex;justify-content:space-between;align-items:center;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.04)}
+.client-item:last-child{border:none}
+.client-item-name{font-size:13px;color:var(--cream);font-weight:400}
+.client-item-sku{font-size:10px;color:var(--stone);margin-top:2px;letter-spacing:.04em}
+.client-item-price{font-family:var(--fd);font-size:18px;color:#fff;white-space:nowrap}
+.client-item-qty{font-size:11px;color:var(--stone);text-align:right;margin-top:1px}
+.client-total-row{display:flex;justify-content:space-between;align-items:baseline;padding:18px 18px;background:var(--carbon)}
+.client-total-lbl{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-lt)}
+.client-total-val{font-family:var(--fd);font-size:38px;font-weight:400;color:#fff}
+.client-detail-row{display:flex;justify-content:space-between;padding:10px 18px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.client-detail-row:last-child{border:none}
+.client-detail-row .l{color:var(--stone)}
+.client-detail-row .v{color:var(--cream);text-align:right;font-weight:400}
+.client-note-box{padding:14px 18px;font-size:12px;color:var(--pewter);line-height:1.7;font-style:italic}
+.client-actions{display:flex;gap:10px;margin-top:24px}
+.client-btn-approve{flex:1;padding:15px;background:var(--gold);color:var(--dark);border:none;border-radius:9px;font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;transition:opacity .15s}
+.client-btn-approve:hover{opacity:.88}
+.client-btn-decline{padding:15px 22px;background:none;color:var(--stone);border:1px solid var(--border2);border-radius:9px;font-family:var(--fb);font-size:12px;cursor:pointer;transition:all .15s;letter-spacing:.06em}
+.client-btn-decline:hover{background:rgba(255,255,255,.04);color:var(--cream)}
+.client-approved{text-align:center;padding:32px 20px;display:none}
+.client-approved .check-ring{margin:0 auto 16px}
+.client-footer{border-top:1px solid var(--border);padding:20px 28px;font-size:11px;color:var(--stone);line-height:1.8;max-width:680px;margin:0 auto;width:100%}
+.client-exp{display:inline-flex;align-items:center;gap:5px;font-size:10px;color:var(--stone);background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:20px;padding:3px 10px;margin-bottom:18px}
+.client-exp svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── MOBILE BREAKPOINT ── */
+@media(max-width:680px){
+  .sidebar{display:none}
+  .mob-nav{display:block}
+  .mob-fab{display:flex}
+  .tb-ham{display:flex}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .field-row{grid-template-columns:1fr}
+  .send-opts{grid-template-columns:1fr}
+  .tbl-head,.tbl-row{font-size:11px}
+  .content{padding:16px}
+  .step-body{padding:16px}
+}
+@media(max-width:400px){
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .stat-n{font-size:26px}
+}
+</style>
+<style>
+/* ── AUTH SCREENS ── */
+.auth-screen{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:24px}
+.auth-screen.hidden{display:none}
+.auth-logo{font-family:var(--fd);font-size:36px;font-weight:300;letter-spacing:.22em;color:#fff;text-transform:uppercase;margin-bottom:6px}
+.auth-tag{font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:48px}
+.auth-card{background:var(--ink);border:1px solid var(--border);border-radius:14px;padding:32px 36px;width:100%;max-width:380px}
+.auth-title{font-family:var(--fd);font-size:22px;font-weight:400;color:#fff;margin-bottom:4px}
+.auth-sub{font-size:12px;color:var(--stone);margin-bottom:24px;line-height:1.6}
+.auth-pin{display:flex;gap:10px;justify-content:center;margin-bottom:20px}
+.auth-pin input{width:48px;height:56px;background:var(--carbon);border:1.5px solid var(--border2);border-radius:9px;font-family:var(--fd);font-size:26px;color:#fff;text-align:center;outline:none;transition:border-color .15s;-webkit-text-security:disc}
+.auth-pin input:focus{border-color:var(--gold)}
+.auth-pin input.err{border-color:#C47A7A;animation:shake .3s}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.auth-input{width:100%;padding:13px 16px;background:var(--carbon);border:1.5px solid var(--border2);border-radius:9px;font-family:var(--fb);font-size:15px;color:#fff;outline:none;transition:border-color .15s;letter-spacing:.08em;text-align:center}
+.auth-input:focus{border-color:var(--gold)}
+.auth-input.err{border-color:#C47A7A;animation:shake .3s}
+.auth-btn{width:100%;padding:14px;background:var(--gold);color:var(--dark);border:none;border-radius:9px;font-family:var(--fb);font-size:12px;font-weight:500;cursor:pointer;letter-spacing:.1em;text-transform:uppercase;margin-top:6px;transition:opacity .15s}
+.auth-btn:hover{opacity:.88}
+.auth-err{color:#C47A7A;font-size:12px;text-align:center;margin-top:10px;min-height:18px}
+.auth-link{font-size:11px;color:var(--stone);text-align:center;margin-top:18px;cursor:pointer;transition:color .15s}
+.auth-link:hover{color:var(--gold-lt)}
+.auth-divider{height:1px;background:var(--border);margin:20px 0}
+
+/* ── ADMIN PORTAL ── */
+.admin-screen{position:fixed;inset:0;background:var(--dark);display:flex;flex-direction:column;z-index:900;overflow:hidden}
+.admin-screen.hidden{display:none}
+.admin-topbar{height:58px;background:var(--ink);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:14px;flex-shrink:0}
+.admin-logo{font-family:var(--fd);font-size:20px;font-weight:300;letter-spacing:.15em;color:#fff}
+.admin-badge{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);background:var(--gold-dim);border:1px solid var(--gold-border);padding:3px 9px;border-radius:20px}
+.admin-content{flex:1;overflow-y:auto;padding:28px;scrollbar-width:thin;scrollbar-color:var(--coal) transparent}
+.admin-content::-webkit-scrollbar{width:3px}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px}
+@media(max-width:700px){.admin-grid{grid-template-columns:1fr}}
+.admin-card{background:var(--ink);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px}
+.admin-card h3{font-family:var(--fd);font-size:19px;font-weight:400;color:#fff;margin-bottom:4px}
+.admin-card p{font-size:12px;color:var(--stone);margin-bottom:18px;line-height:1.6}
+.dealer-row{display:grid;grid-template-columns:1.4fr 1fr .6fr .5fr auto;gap:8px;align-items:center;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px}
+.dealer-row:last-child{border:none}
+.dealer-row:hover{background:rgba(255,255,255,.02)}
+.dealer-row .dn{color:var(--cream);font-weight:400}
+.dealer-row .ds{color:var(--stone)}
+.dealer-row .dp{font-family:var(--fd);font-size:14px;color:var(--gold-lt);letter-spacing:.06em}
+.dealer-row .dm{font-size:11px;color:var(--gold-lt)}
+.d-actions{display:flex;gap:5px}
+.pill-inactive{background:rgba(124,58,58,.12);color:#C47A7A;border:1px solid rgba(124,58,58,.3);font-size:9px;padding:2px 7px;border-radius:10px;letter-spacing:.05em}
+.pill-active{background:var(--success-bg);color:var(--success);border:1px solid rgba(74,124,78,.3);font-size:9px;padding:2px 7px;border-radius:10px;letter-spacing:.05em}
+
+/* ── WELCOME CARD ── */
+.wcard-wrap{background:var(--ink);border:1px solid var(--gold-border);border-radius:12px;padding:24px;margin-top:16px;position:relative;overflow:hidden}
+.wcard-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold-dk),var(--gold),var(--gold-dk))}
+.wcard-logo{font-family:var(--fd);font-size:22px;font-weight:300;letter-spacing:.18em;color:#fff;margin-bottom:2px}
+.wcard-tag{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.wcard-dealer{font-size:15px;color:var(--cream);font-weight:400;margin-bottom:2px}
+.wcard-city{font-size:12px;color:var(--stone);margin-bottom:16px}
+.wcard-pin-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:5px}
+.wcard-pin{font-family:var(--fd);font-size:42px;font-weight:400;color:var(--gold);letter-spacing:.25em;margin-bottom:6px}
+.wcard-note{font-size:11px;color:var(--stone);line-height:1.6;margin-bottom:16px}
+.wcard-contact{font-size:11px;color:var(--pewter);line-height:1.8;border-top:1px solid var(--border);padding-top:12px}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LAYER 0 — DEALER LOGIN SCREEN
+════════════════════════════════════════════ -->
+<div class="auth-screen" id="screen-login">
+  <div class="auth-logo">Rubinet</div>
+  <div class="auth-tag">Dealer Quote Builder</div>
+  <div class="auth-card">
+    <div class="auth-title">Dealer access</div>
+    <div class="auth-sub">Enter the PIN provided by your Rubinet representative to access the quoting tool.</div>
+    <input class="auth-input" id="login-pin" type="password" placeholder="Enter your PIN" maxlength="20" autocomplete="off" onkeydown="if(event.key==='Enter')attemptDealerLogin()"/>
+    <button class="auth-btn" onclick="attemptDealerLogin()">Unlock →</button>
+    <div class="auth-err" id="login-err"></div>
+    <div class="auth-divider"></div>
+    <div class="auth-link" onclick="showAdminLogin()">Rubinet admin access</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LAYER 0b — ADMIN LOGIN SCREEN
+════════════════════════════════════════════ -->
+<div class="auth-screen hidden" id="screen-admin-login">
+  <div class="auth-logo">Rubinet</div>
+  <div class="auth-tag">Admin Portal</div>
+  <div class="auth-card">
+    <div class="auth-title">Admin access</div>
+    <div class="auth-sub">Restricted to authorised Rubinet staff.</div>
+    <input class="auth-input" id="admin-pin-input" type="password" placeholder="Enter admin PIN" autocomplete="off" onkeydown="if(event.key==='Enter')attemptAdminLogin()"/>
+    <button class="auth-btn" onclick="attemptAdminLogin()">Enter →</button>
+    <div class="auth-err" id="admin-login-err"></div>
+    <div class="auth-divider"></div>
+    <div class="auth-link" onclick="showDealerLogin()">← Back to dealer login</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LAYER 1 — RUBINET ADMIN PORTAL
+════════════════════════════════════════════ -->
+<div class="admin-screen hidden" id="screen-admin">
+  <div class="admin-topbar">
+    <div class="admin-logo">Rubinet</div>
+    <div class="admin-badge">Admin Portal</div>
+    <div style="flex:1"></div>
+    <button class="btn btn-ghost btn-sm" onclick="adminLogout()">Sign out</button>
+  </div>
+  <div class="admin-content">
+
+    <div style="margin-bottom:22px">
+      <div style="font-family:var(--fd);font-size:26px;font-weight:400;color:#fff;margin-bottom:4px">Dealer management</div>
+      <div style="font-size:12px;color:var(--stone)">Create and manage authorised Rubinet dealers. Each dealer receives a unique PIN to access the quoting app.</div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid" style="margin-bottom:28px" id="admin-stats">
+      <div class="stat-card"><div class="stat-lbl">Total dealers</div><div class="stat-n" id="adm-total">0</div></div>
+      <div class="stat-card"><div class="stat-lbl">Active</div><div class="stat-n g" id="adm-active">0</div></div>
+      <div class="stat-card"><div class="stat-lbl">Inactive</div><div class="stat-n" id="adm-inactive">0</div></div>
+      <div class="stat-card"><div class="stat-lbl">Avg multiplier</div><div class="stat-n g" id="adm-avg">—</div></div>
+    </div>
+
+    <div class="admin-grid">
+
+      <!-- Create dealer -->
+      <div class="admin-card">
+        <h3>Add new dealer</h3>
+        <p>Set up access for a new authorised showroom.</p>
+        <div class="field"><label>Showroom name</label><input id="nd-name" type="text" placeholder="Apex Kitchen & Bath"/></div>
+        <div class="field-row">
+          <div class="field"><label>City</label><input id="nd-city" type="text" placeholder="Toronto, ON"/></div>
+          <div class="field"><label>Province</label><input id="nd-prov" type="text" placeholder="ON" maxlength="2"/></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Contact name</label><input id="nd-contact" type="text" placeholder="Jane Smith"/></div>
+          <div class="field"><label>Phone</label><input id="nd-phone" type="tel" placeholder="(416) 555-0100"/></div>
+        </div>
+        <div class="field"><label>Email</label><input id="nd-email" type="email" placeholder="jane@showroom.ca"/></div>
+        <div class="field">
+          <label>Net multiplier (% of list price dealer pays)</label>
+          <div style="display:flex;align-items:center;gap:14px;margin-top:4px">
+            <input type="range" id="nd-mult" min="40" max="80" value="60" step="1" oninput="document.getElementById('nd-mult-val').textContent=this.value+'%'"/>
+            <span id="nd-mult-val" style="font-family:var(--fd);font-size:22px;color:var(--gold);min-width:48px">60%</span>
+          </div>
+          <div class="range-labels"><span>40%</span><span>60% typical</span><span>80%</span></div>
+        </div>
+        <button class="cta" onclick="createDealer()">Create dealer &amp; generate PIN →</button>
+        <div class="auth-err" id="nd-err" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Welcome card preview -->
+      <div class="admin-card" id="wcard-panel" style="display:none">
+        <h3>Welcome card</h3>
+        <p>Share this PIN with the dealer — verbally, by email, or print this card.</p>
+        <div class="wcard-wrap" id="wcard">
+          <div class="wcard-logo">Rubinet</div>
+          <div class="wcard-tag">Dealer Quote Builder · Access Credentials</div>
+          <div class="wcard-dealer" id="wc-name">—</div>
+          <div class="wcard-city" id="wc-city">—</div>
+          <div class="wcard-pin-lbl">Your dealer PIN</div>
+          <div class="wcard-pin" id="wc-pin">——</div>
+          <div class="wcard-note">Enter this PIN at <strong style="color:var(--cream)">kcorerd-bot.github.io/Rubinet-App</strong> to access the Rubinet Quote Builder. Keep this PIN confidential — it pre-loads your showroom profile and pricing.</div>
+          <div class="wcard-contact">
+            Rubinet Faucet Company Ltd.<br>
+            10 Corstate Ave, Concord ON L4K 4X2<br>
+            <span style="color:var(--gold-lt)">Aldo Marchese</span> · amarchese@rubinet.com · (416) 709-1010<br>
+            <span style="color:var(--gold-lt)">Frank Luisi</span> · fluisi@rubinet.com · (416) 727-6669
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+          <button class="btn btn-gold" onclick="printWelcomeCard()">
+            <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Print / save
+          </button>
+          <button class="btn btn-ghost" onclick="emailWelcomeCard()">
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>Email dealer
+          </button>
+          <button class="btn btn-ghost" onclick="smsWelcomeCard()">
+            <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Text dealer
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Dealer list -->
+    <div style="font-family:var(--fd);font-size:20px;font-weight:400;color:#fff;margin-bottom:14px">All dealers</div>
+    <div class="tbl" id="dealer-list-wrap">
+      <div class="dealer-row" style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--stone);background:rgba(255,255,255,.02);border-radius:var(--r) var(--r) 0 0">
+        <span>Showroom</span><span>Contact</span><span>Multiplier</span><span>Status</span><span></span>
+      </div>
+      <div id="dealer-list"><div style="padding:20px;color:var(--stone);font-size:12px;text-align:center">No dealers yet</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LAYER 3 — CLIENT REVIEW SCREEN
+════════════════════════════════════════════ -->
+<div class="client-screen hidden" id="screen-client">
+  <div class="client-header">
+    <div>
+      <div class="client-logo">Rubinet</div>
+      <div class="client-logo-tag">Quote Review</div>
+    </div>
+    <div id="client-header-dealer" style="text-align:right;font-size:12px;color:var(--stone);line-height:1.6"></div>
+  </div>
+
+  <div class="client-hero">
+    <div class="client-from" id="client-from-lbl">Quote prepared by</div>
+    <div class="client-h" id="client-h">Your Rubinet Quote</div>
+    <div class="client-sub" id="client-sub">Please review the items below and approve or request changes.</div>
+    <div class="client-exp" id="client-exp">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      <span id="client-exp-text">Valid 30 days</span>
+    </div>
+  </div>
+
+  <div class="client-body">
+
+    <!-- Items -->
+    <div class="client-section">
+      <div class="client-section-hd">Items quoted</div>
+      <div id="client-items-list"></div>
+    </div>
+
+    <!-- Total -->
+    <div class="client-section">
+      <div class="client-total-row">
+        <div class="client-total-lbl">Total (CAD, incl. tax)</div>
+        <div class="client-total-val" id="client-total">$0</div>
+      </div>
+    </div>
+
+    <!-- Details -->
+    <div class="client-section">
+      <div class="client-section-hd">Quote details</div>
+      <div class="client-detail-row"><span class="l">Quote reference</span><span class="v" id="client-ref">—</span></div>
+      <div class="client-detail-row"><span class="l">Finish</span><span class="v" id="client-finish">—</span></div>
+      <div class="client-detail-row"><span class="l">Lead time</span><span class="v" id="client-lead">—</span></div>
+      <div class="client-detail-row"><span class="l">Project type</span><span class="v" id="client-type">—</span></div>
+      <div class="client-detail-row" id="client-addr-row" style="display:none"><span class="l">Site address</span><span class="v" id="client-addr">—</span></div>
+    </div>
+
+    <!-- Notes -->
+    <div class="client-section" id="client-notes-section" style="display:none">
+      <div class="client-section-hd">Notes from your dealer</div>
+      <div class="client-note-box" id="client-notes"></div>
+    </div>
+
+    <!-- Actions -->
+    <div id="client-action-area">
+      <div class="client-actions">
+        <button class="client-btn-approve" onclick="clientApprove()">
+          Approve this quote →
+        </button>
+        <button class="client-btn-decline" onclick="clientDecline()">
+          Request changes
+        </button>
+      </div>
+      <div style="font-size:11px;color:var(--stone);margin-top:12px;text-align:center;line-height:1.6">
+        Approving sends a confirmation email to your dealer. Pricing in CAD. All Rubinet finishes are produced to order in Canada and carry a lifetime warranty on finish and function.
+      </div>
+    </div>
+
+    <!-- Post-approve state -->
+    <div class="client-approved" id="client-approved-state">
+      <div class="check-ring"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <div style="font-family:var(--fd);font-size:28px;color:#fff;margin-bottom:8px">Quote approved</div>
+      <div style="font-size:13px;color:var(--pewter);line-height:1.7;max-width:320px;margin:0 auto">Your dealer has been notified. They will be in touch shortly to confirm your order.</div>
+    </div>
+
+  </div>
+
+  <div class="client-footer" id="client-footer-dealer"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     LAYER 2 — DEALER APP (existing)
+════════════════════════════════════════════ -->
+<div class="app hidden" id="app">
+
+<!-- SIDEBAR (desktop) -->
+<div class="sidebar" id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-brand">Rubinet</div>
+    <div class="sb-tagline">Dealer Quote Builder</div>
+  </div>
+  <div class="sb-sec">Quoting</div>
+  <div class="ni on" data-panel="p-home" onclick="nav(this)">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Dashboard
+  </div>
+  <div class="ni" data-panel="p-new" onclick="nav(this);startQuote()">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>New quote
+  </div>
+  <div class="ni" data-panel="p-quotes" onclick="nav(this)">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>My quotes
+  </div>
+  <div class="sb-sec">Reference</div>
+  <div class="ni" data-panel="p-catalogue" onclick="nav(this)">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Price list 2023
+  </div>
+  <div class="sb-sec">Account</div>
+  <div class="ni" data-panel="p-settings" onclick="nav(this)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings
+  </div>
+  <div class="sb-bottom">
+    <div class="sb-user">
+      <div class="sb-av" id="sb-av">AP</div>
+      <div><div class="sb-un" id="sb-name">Apex Bath · Toronto</div><div class="sb-ur">Authorized dealer</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <button class="tb-ham" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <div class="tb-title" id="tb-title">Dashboard</div>
+    <button class="btn btn-ghost btn-sm" onclick="nav(document.querySelector('[data-panel=p-settings]'))">
+      Net: <span id="tb-mult">60%</span>
+    </button>
+    <button class="btn btn-gold btn-sm" onclick="nav(document.querySelector('[data-panel=p-new]'));startQuote()" id="tb-new-btn">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New quote
+    </button>
+  </div>
+  <div class="prog-bar" id="prog-bar" style="display:none"><div class="prog-fill" id="prog" style="width:25%"></div></div>
+
+  <div class="content" id="content-area">
+
+    <!-- DASHBOARD -->
+    <div class="panel on" id="p-home">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-lbl">Active quotes</div><div class="stat-n" id="dash-active">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Accepted</div><div class="stat-n g" id="dash-accepted">—</div><div class="stat-d" id="dash-rate" style="color:var(--stone)"></div></div>
+        <div class="stat-card"><div class="stat-lbl">Awaiting client</div><div class="stat-n" id="dash-awaiting">—</div></div>
+        <div class="stat-card"><div class="stat-lbl">Month accepted</div><div class="stat-n g" id="dash-rev" style="font-size:24px;padding-top:6px">—</div></div>
+      </div>
+      <div class="sec-hd">
+        <h3>Recent quotes</h3>
+        <button class="btn btn-ghost btn-sm" onclick="nav(document.querySelector('[data-panel=p-quotes]'));renderQuotesPanel()">View all</button>
+      </div>
+      <div class="tbl">
+        <div class="tbl-head" style="grid-template-columns:1.1fr 1.4fr 1fr .8fr 1fr .8fr"><span>Quote #</span><span>Client</span><span>Product</span><span>Finish</span><span>Total</span><span>Status</span></div>
+        <div id="dash-rows"><div style="padding:18px 16px;color:var(--stone);font-size:12px;text-align:center">No quotes yet — create your first one</div></div>
+      </div>
+    </div>
+
+    <!-- NEW QUOTE -->
+    <div class="panel" id="p-new" style="padding:0">
+      <!-- Step 1 -->
+      <div id="step1" class="step-body">
+        <div class="step-chip">Step 1 of 4</div>
+        <div class="step-h">Client details</div>
+        <div class="field"><label>Client / project name</label><input id="cname" type="text" placeholder="e.g. Johnson Residence"/></div>
+        <div class="field-row">
+          <div class="field"><label>Contact name</label><input id="ccontact" type="text" placeholder="Sarah Johnson"/></div>
+          <div class="field"><label>Email</label><input id="cemail" type="email" placeholder="client@email.com"/></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Phone</label><input id="cphone" type="tel" placeholder="+1 416 555 0100"/></div>
+          <div class="field"><label>Project type</label>
+            <select id="ctype"><option>Residential — New Build</option><option>Residential — Renovation</option><option>Commercial</option><option>Hospitality</option><option>Designer Spec</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Site address (optional)</label><input id="caddr" type="text" placeholder="123 Lakeshore Blvd, Toronto ON"/></div>
+        <button class="cta" onclick="goStep(2)">Continue →</button>
+      </div>
+      <!-- Step 2 -->
+      <div id="step2" class="step-body" style="display:none">
+        <div class="step-chip">Step 2 of 4</div>
+        <div class="step-h">Select products</div>
+        <div class="price-key">
+          <span class="pk pk-a">Cat A — Chrome / Satin Chrome</span>
+          <span class="pk pk-b">Cat B — All other finishes</span>
+        </div>
+        <div class="cat-bar">
+          <button class="cat-pill on" onclick="setCat(this,'All')">All</button>
+          <button class="cat-pill" onclick="setCat(this,'Lavatory')">Lavatory</button>
+          <button class="cat-pill" onclick="setCat(this,'Kitchen')">Kitchen</button>
+          <button class="cat-pill" onclick="setCat(this,'Bar')">Bar</button>
+          <button class="cat-pill" onclick="setCat(this,'Tub')">Tub filler</button>
+          <button class="cat-pill" onclick="setCat(this,'Shower')">Shower</button>
+          <button class="cat-pill" onclick="setCat(this,'Accessories')">Accessories</button>
+        </div>
+        <div class="search-row">
+          <input id="psearch" placeholder="Search SKU, name or collection…" oninput="renderProds()"/>
+          <svg class="s-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <div class="prod-list" id="prod-list"></div>
+        <div style="margin-bottom:18px">
+          <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:8px">Select finish</div>
+          <div class="swatch-grid">
+            <div class="swatch on" style="background:#E8E8E6;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.15)" onclick="pickFinish(this,'Polished Chrome','A')"><div class="swatch-tip">Polished Chrome (A)</div></div>
+            <div class="swatch" style="background:#C8C8C5" onclick="pickFinish(this,'Satin Chrome','A')"><div class="swatch-tip">Satin Chrome (A)</div></div>
+            <div class="swatch" style="background:#B5AFA8" onclick="pickFinish(this,'Brushed Nickel','B')"><div class="swatch-tip">Brushed Nickel (B)</div></div>
+            <div class="swatch" style="background:#2B2B2B" onclick="pickFinish(this,'Matte Black','B')"><div class="swatch-tip">Matte Black (B)</div></div>
+            <div class="swatch" style="background:#C9A96B" onclick="pickFinish(this,'Polished Brass','B')"><div class="swatch-tip">Polished Brass (B)</div></div>
+            <div class="swatch" style="background:#D4B483" onclick="pickFinish(this,'Satin Brass','B')"><div class="swatch-tip">Satin Brass (B)</div></div>
+            <div class="swatch" style="background:#C8A86A;opacity:.85" onclick="pickFinish(this,'Brushed Gold PVD','B')"><div class="swatch-tip">Brushed Gold PVD (B)</div></div>
+            <div class="swatch" style="background:#8B6B4A" onclick="pickFinish(this,'Oil-Rubbed Bronze','B')"><div class="swatch-tip">Oil-Rubbed Bronze (B)</div></div>
+            <div class="swatch" style="background:#A8C4D4" onclick="pickFinish(this,'Satin Nickel PVD','B')"><div class="swatch-tip">Satin Nickel PVD (B)</div></div>
+            <div class="swatch" style="background:#6B3A2A" onclick="pickFinish(this,'Antique Copper Matte','B')"><div class="swatch-tip">Antique Copper Matte (B)</div></div>
+            <div class="swatch" style="background:#4A5A3A" onclick="pickFinish(this,'Green Envy','B')"><div class="swatch-tip">Green Envy (B)</div></div>
+            <div class="swatch" style="background:#1A2A3A" onclick="pickFinish(this,'Midnight Blue','B')"><div class="swatch-tip">Midnight Blue (B)</div></div>
+            <div class="swatch" style="background:#5A1A2A" onclick="pickFinish(this,'Maroon','B')"><div class="swatch-tip">Maroon (B)</div></div>
+            <div class="swatch" style="background:#EDEDED;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)" onclick="pickFinish(this,'Matte White','B')"><div class="swatch-tip">Matte White (B)</div></div>
+            <div class="swatch" style="background:#8B0000" onclick="pickFinish(this,'Red','B')"><div class="swatch-tip">Red (B)</div></div>
+          </div>
+          <div class="finish-name" id="finish-name">Polished Chrome — Category A pricing applied</div>
+        </div>
+        <button class="cta" onclick="goStep(3)">Review quote →</button>
+        <button class="ghost" onclick="goStep(1)">← Back</button>
+      </div>
+      <!-- Step 3 -->
+      <div id="step3" class="step-body" style="display:none">
+        <div class="step-chip">Step 3 of 4</div>
+        <div class="step-h">Review & pricing</div>
+        <div id="cart-items"></div>
+        <button class="add-more" onclick="goStep(2)">
+          <svg style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Add more products
+        </button>
+        <div class="sum-box">
+          <div class="sum-row"><span class="l">List price total</span><span class="v" id="s-sub">$0</span></div>
+          <div class="sum-row"><span class="l">Your dealer net (<span id="s-pct">60</span>% of list)</span><span class="v g" id="s-dealer">$0</span></div>
+          <div class="sum-row"><span class="l">Your margin</span><span class="v g" id="s-margin">$0</span></div>
+          <div class="sum-div"></div>
+          <div class="sum-total"><span class="l">Client total (CAD)</span><span class="v" id="s-total">$0</span></div>
+        </div>
+        <div class="field"><label>Lead time</label>
+          <select id="lead-time"><option>4–6 weeks (standard)</option><option>6–8 weeks (custom finish)</option><option>8–10 weeks (special order)</option><option>In stock — ships within 5 business days</option><option>Contact us for availability</option></select>
+        </div>
+        <div class="field"><label>Notes to client</label>
+          <textarea id="cnotes" placeholder="All Rubinet finishes are produced to order in Canada. Quote valid 30 days. Prices in CAD…"></textarea>
+        </div>
+        <button class="cta" onclick="goStep(4)">Delivery options →</button>
+        <button class="ghost" onclick="goStep(2)">← Back to products</button>
+      </div>
+      <!-- Step 4 -->
+      <div id="step4" class="step-body" style="display:none">
+        <div class="step-chip">Step 4 of 4</div>
+        <div class="step-h">Send to client</div>
+        <div class="sum-box" style="margin-bottom:18px">
+          <div class="sum-row"><span class="l">Client</span><span class="v" style="font-family:var(--fb);font-size:13px" id="s4-client">—</span></div>
+          <div class="sum-row"><span class="l">Items</span><span class="v" style="font-family:var(--fb);font-size:13px" id="s4-items">—</span></div>
+          <div class="sum-row"><span class="l">Finish</span><span class="v" style="font-family:var(--fb);font-size:12px" id="s4-finish">—</span></div>
+          <div class="sum-row"><span class="l">Lead time</span><span class="v" style="font-family:var(--fb);font-size:12px" id="s4-lead">—</span></div>
+          <div class="sum-div"></div>
+          <div class="sum-total"><span class="l">Client total (CAD)</span><span class="v" id="s4-total">$0</span></div>
+        </div>
+        <div style="font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:11px">Choose delivery</div>
+        <div class="send-opts">
+          <div class="send-opt" id="opt-pdf" onclick="toggleSend('pdf')">
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>
+            <div class="lbl">Generate PDF</div><div class="sub">Downloads instantly</div>
+          </div>
+          <div class="send-opt" id="opt-email" onclick="toggleSend('email')">
+            <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22,4 12,13 2,4"/></svg>
+            <div class="lbl">Email client</div><div class="sub">Opens mail app</div>
+          </div>
+        </div>
+        <div class="send-full" id="opt-sms" onclick="toggleSend('sms')">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          <span>Text / iMessage — share PDF from your phone</span>
+        </div>
+        <div class="send-full" id="opt-link" onclick="toggleSend('link')">
+          <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span>Shareable review link — client approves online</span>
+        </div>
+        <button class="cta" id="send-cta" onclick="handleSend()">Select a delivery method</button>
+        <button class="ghost" onclick="goStep(3)">← Back to review</button>
+      </div>
+    </div>
+
+    <!-- MY QUOTES -->
+    <div class="panel" id="p-quotes"></div>
+
+    <!-- PRICE CATALOGUE -->
+    <div class="panel" id="p-catalogue">
+      <div style="font-size:11px;color:var(--stone);margin-bottom:14px;padding:10px 13px;background:var(--gold-dim);border:1px solid var(--gold-border);border-radius:7px">Source: Rubinet Canadian Price List 2023 · All prices CAD · Cat A = Chrome/Satin Chrome · Cat B = All other finishes · Art variants A1/A2/A3 priced on request</div>
+      <div class="sec-hd"><h3>Lavatory — Nouveau</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1ANVL/R</span><span>Widespread lav set</span><span class="g">$779</span><span>$1,149</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1ANLL/R</span><span>Widespread — LaSalle spout</span><span class="g">$729</span><span>$1,099</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1MNVL</span><span>Single control lav set</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1NNVL</span><span>Single ctrl lav — extended base</span><span class="g">$719</span><span>$1,079</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1KNVL</span><span>Single hole single ctrl lav</span><span class="g">$569</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1CNVL/R</span><span>Single hole dual handle lav</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T1GNVL/R</span><span>Wall mount lav — trim only</span><span class="g">$559</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T1JNVL</span><span>Wall mount s/c lav — trim only</span><span class="g">$519</span><span>$829</span></div>
+      </div>
+      <div class="sec-hd"><h3>Lavatory — LaSalle</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1ALAL/C/R</span><span>LaSalle widespread lav set</span><span class="g">$729</span><span>$1,099</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1MLAL</span><span>LaSalle single control lav set</span><span class="g">$569</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1KLAL</span><span>LaSalle s/h single ctrl lav</span><span class="g">$569</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1BLAL</span><span>LaSalle 4" centre single ctrl lav</span><span class="g">$669</span><span>$1,029</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">1CLAL/C/R</span><span>LaSalle s/h dual handle lav</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T1GLAL/C/R</span><span>LaSalle wall mount lav — trim only</span><span class="g">$509</span><span>$869</span></div>
+      </div>
+      <div class="sec-hd"><h3>Tub fillers — Nouveau</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T5ANVL/R</span><span>Roman tub filler — trim only</span><span class="g">$719</span><span>$1,149</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T5HNVL/R</span><span>4-pc roman tub + hand held trim</span><span class="g">$1,229</span><span>$1,949</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">3GNVL/R</span><span>Floor mount tub filler + hand held</span><span class="g">$2,669</span><span>$4,099</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T2ANVL/R</span><span>3-valve tub filler w/ diverter trim</span><span class="g">$489</span><span>$799</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T3ANVL/R</span><span>2-valve tub filler — trim only</span><span class="g">$329</span><span>$539</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T3BNVL/R</span><span>Wall mount tub filler — trim only</span><span class="g">$559</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">2THOW</span><span>Tub spout — wall mount</span><span class="g">$269</span><span>$399</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">2THOD</span><span>Tub spout — deck mount</span><span class="g">$445</span><span>$699</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">2TLAF</span><span>Tub spout — floor mount</span><span class="g">$689</span><span>$1,149</span></div>
+      </div>
+      <div class="sec-hd"><h3>Shower systems — Nouveau</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T20NVL/R</span><span>Temp ctrl shower — 3-fn + HH + slide bar</span><span class="g">$1,872</span><span>$2,962</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T21NVL/R</span><span>Temp ctrl shower — 8" wall head</span><span class="g">$2,001</span><span>$3,146</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T23NVL/R</span><span>Temp ctrl tub & shower — 3-way + tub spout</span><span class="g">$2,190</span><span>$3,431</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T30NVL/R</span><span>Temp ctrl — 2 vol ctrl + 2 body sprays</span><span class="g">$2,350</span><span>$3,729</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T45NVL/R</span><span>Temp ctrl — 3 vol ctrl + 4 body sprays</span><span class="g">$2,828</span><span>$4,496</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">T48NVL/R</span><span>Temp ctrl — 3 vol + 4 body + 12" ceiling</span><span class="g">$3,197</span><span>$5,135</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">4UNV1</span><span>Slide bar kit — 8" head + HH (at diverter)</span><span class="g">$1,449</span><span>$2,280</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">4UNV2</span><span>Slide bar kit — 8" head + HH (at head)</span><span class="g">$1,679</span><span>$2,595</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">4F035</span><span>3-fn shower head w/ 8" arm & flange</span><span class="g">$550</span><span>$855</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">4F016</span><span>12" shower head w/ arm — wall mount</span><span class="g">$1,099</span><span>$1,784</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">4F216</span><span>12" shower head w/ arm — ceiling mount</span><span class="g">$919</span><span>$1,494</span></div>
+      </div>
+      <div class="sec-hd"><h3>Kitchen — Genesis</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8AGNL/C</span><span>Widespread kitchen faucet</span><span class="g">$729</span><span>$1,099</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8AGNSL/C</span><span>Widespread kitchen + hand spray</span><span class="g">$949</span><span>$1,379</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8DGNL/C</span><span>Two-handle single hole kitchen</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8KGNL</span><span>Single control kitchen</span><span class="g">$584</span><span>$944</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8JGNL</span><span>Single ctrl kitchen + retractable spray</span><span class="g">$779</span><span>$999</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8IGNL</span><span>Single ctrl kitchen + industrial spray</span><span class="g">$1,099</span><span>$1,549</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8YGNL</span><span>Single control bar faucet</span><span class="g">$559</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8PGNL/C</span><span>Two-handle single hole bar faucet</span><span class="g">$569</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8EGNL/C</span><span>Pot filler — wall mount</span><span class="g">$949</span><span>$1,399</span></div>
+      </div>
+      <div class="sec-hd"><h3>Kitchen — Nouveau</h3></div>
+      <div class="tbl" style="margin-bottom:16px">
+        <div class="tbl-head" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span>SKU</span><span>Description</span><span>Cat A</span><span>Cat B</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8ANVL/R</span><span>Widespread kitchen faucet</span><span class="g">$779</span><span>$1,149</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8ANVSL/R</span><span>Widespread kitchen + hand spray</span><span class="g">$999</span><span>$1,429</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8KNVL</span><span>Single control kitchen</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8JNVL</span><span>Single ctrl kitchen + retractable spray</span><span class="g">$1,099</span><span>$1,449</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8JNML</span><span>Mini single ctrl kitchen + retractable</span><span class="g">$849</span><span>$1,099</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8YNVL</span><span>Single control bar faucet</span><span class="g">$569</span><span>$919</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8PNVL/R</span><span>Two-handle single hole bar faucet</span><span class="g">$619</span><span>$969</span></div>
+        <div class="tbl-row" style="grid-template-columns:1fr 2.2fr 1fr 1fr"><span class="p">8ENVL/R</span><span>Pot filler — wall mount</span><span class="g">$999</span><span>$1,449</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--stone);padding:8px 0">* Trim-only pricing shown where applicable. Rough-in priced separately. Art variants A1/A2/A3 available on request.</div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="p-settings">
+      <div class="info-banner">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Your dealer net multiplier is set by Rubinet when your account is created. Enter it here — clients always see list price only.</span>
+      </div>
+      <div class="settings-card">
+        <h4>Dealer profile</h4>
+        <p>Appears on all generated PDF quotes.</p>
+        <div class="field-row">
+          <div class="field"><label>Showroom name</label><input id="set-name" type="text" placeholder="Apex Kitchen & Bath" oninput="updateProfile()"/></div>
+          <div class="field"><label>City</label><input id="set-city" type="text" placeholder="Toronto, ON" oninput="updateProfile()"/></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Phone</label><input id="set-phone" type="text" placeholder="(416) 555-0182"/></div>
+          <div class="field"><label>Email</label><input id="set-email" type="email" placeholder="info@showroom.ca"/></div>
+        </div>
+        <div class="field"><label>Website (optional)</label><input id="set-web" type="text" placeholder="www.myshowroom.ca"/></div>
+      </div>
+      <div class="settings-card">
+        <h4>Dealer net multiplier</h4>
+        <p>The percentage of list price you pay Rubinet. Only visible to you — never shown to clients.</p>
+        <div class="mult-display" id="mult-display">60%</div>
+        <div class="mult-sub">of Rubinet list price = your dealer net cost</div>
+        <input type="range" id="mult-slider" min="40" max="80" value="60" step="1" oninput="updateMult(this.value)"/>
+        <div class="range-labels"><span>40% (high margin)</span><span>60% (typical)</span><span>80% (low margin)</span></div>
+        <div class="mult-preview">
+          <div class="mp-row"><span class="ml">Example: $1,000 list item</span><span class="mv"></span></div>
+          <div class="mp-row"><span class="ml">Your dealer cost</span><span class="mv g" id="mp-cost">$600</span></div>
+          <div class="mp-row"><span class="ml">Your margin</span><span class="mv g" id="mp-margin">$400</span></div>
+          <div class="mp-row"><span class="ml">Client pays (list)</span><span class="mv">$1,000</span></div>
+        </div>
+        <div style="margin-top:14px;font-size:11px;color:var(--stone);line-height:1.7">
+          Not sure of your multiplier? Contact Rubinet:<br>
+          <span style="color:var(--gold-lt)">Aldo Marchese</span> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="442528202b043631262d2a21306a272b29">[email&#160;protected]</a> · (416) 709-1010<br>
+          <span style="color:var(--gold-lt)">Frank Luisi</span> · <a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8fe9fdeee1e4cffdfaede6e1eafba1ece0e2">[email&#160;protected]</a> · (416) 727-6669
+        </div>
+      </div>
+      <button class="cta" style="max-width:260px" onclick="saveSettings()">Save settings</button>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="panel" id="p-success">
+      <div class="success-wrap">
+        <div class="check-ring"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+        <div class="success-h" id="suc-h">Quote ready</div>
+        <p class="success-p" id="suc-p">Your Rubinet quote has been generated with real 2023 CAD pricing.</p>
+        <div class="ref-box">
+          <div class="ref-lbl">Quote reference</div>
+          <div class="ref-n" id="ref-num">RQ-2024-0492</div>
+          <div class="ref-sub" id="ref-method">PDF generated</div>
+        </div>
+        <button class="cta" onclick="nav(document.querySelector('[data-panel=p-home]'))">Back to dashboard</button>
+        <button class="ghost" onclick="nav(document.querySelector('[data-panel=p-new]'));startQuote()">Create another quote</button>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="mob-nav">
+    <div class="mob-nav-inner">
+      <div class="mob-tab on" data-panel="p-home" onclick="nav(this)">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </div>
+      <div class="mob-tab" data-panel="p-quotes" onclick="nav(this)">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Quotes</span>
+      </div>
+      <div class="mob-tab" data-panel="p-catalogue" onclick="nav(this)">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        <span>Prices</span>
+      </div>
+      <div class="mob-tab" data-panel="p-settings" onclick="nav(this)">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>Settings</span>
+      </div>
+    </div>
+  </div>
+</div><!-- /main -->
+</div><!-- /app -->
+
+<!-- MOBILE FAB -->
+<button class="mob-fab" onclick="nav(document.querySelector('[data-panel=p-new]'));startQuote()" title="New quote">
+  <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- PWA INSTALL BANNER -->
+<div class="install-banner" id="install-banner">
+  <div class="ib-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+  <div class="ib-text">
+    <div class="ib-title">Install Rubinet Quote Builder</div>
+    <div class="ib-sub">Add to your home screen — works offline</div>
+  </div>
+  <div class="ib-btns">
+    <button class="ib-install" onclick="installPWA()">Install</button>
+    <button class="ib-dismiss" onclick="dismissInstall()">Later</button>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── REAL 2023 RUBINET CATALOGUE (CAD) ──
+const CAT=[
+  {sku:'1ANVL/R',  name:'Nouveau widespread lav set',              cat:'Lavatory',    col:'Nouveau',   pA:779,  pB:1149, ic:'lav'},
+  {sku:'1ANLL/R',  name:'Nouveau widespread — LaSalle spout',      cat:'Lavatory',    col:'Nouveau',   pA:729,  pB:1099, ic:'lav'},
+  {sku:'1MNVL',    name:'Nouveau single control lav set',           cat:'Lavatory',    col:'Nouveau',   pA:619,  pB:969,  ic:'lav'},
+  {sku:'1NNVL',    name:'Nouveau single ctrl lav — ext. base',      cat:'Lavatory',    col:'Nouveau',   pA:719,  pB:1079, ic:'lav'},
+  {sku:'1KNVL',    name:'Nouveau s/h single ctrl lav',              cat:'Lavatory',    col:'Nouveau',   pA:569,  pB:919,  ic:'lav'},
+  {sku:'1LNVL',    name:'Nouveau s/h single ctrl — ext. base',      cat:'Lavatory',    col:'Nouveau',   pA:669,  pB:1029, ic:'lav'},
+  {sku:'1CNVL/R',  name:'Nouveau s/h dual handle lav set',          cat:'Lavatory',    col:'Nouveau',   pA:619,  pB:969,  ic:'lav'},
+  {sku:'1DNVL/R',  name:'Nouveau s/h dual hdl lav — ext. base',     cat:'Lavatory',    col:'Nouveau',   pA:719,  pB:1179, ic:'lav'},
+  {sku:'T1GNVL/R', name:'Nouveau wall mount lav — trim only',       cat:'Lavatory',    col:'Nouveau',   pA:559,  pB:919,  ic:'lav'},
+  {sku:'T1JNVL',   name:'Nouveau wall mount s/c lav — trim only',   cat:'Lavatory',    col:'Nouveau',   pA:519,  pB:829,  ic:'lav'},
+  {sku:'1ALAL/C/R',name:'LaSalle widespread lav set',               cat:'Lavatory',    col:'LaSalle',   pA:729,  pB:1099, ic:'lav'},
+  {sku:'1ALGL/C/R',name:'LaSalle widespread — Genesis spout',       cat:'Lavatory',    col:'LaSalle',   pA:729,  pB:1099, ic:'lav'},
+  {sku:'1MLAL',    name:'LaSalle single control lav set',            cat:'Lavatory',    col:'LaSalle',   pA:569,  pB:919,  ic:'lav'},
+  {sku:'1NLAL',    name:'LaSalle single ctrl lav — ext. base',       cat:'Lavatory',    col:'LaSalle',   pA:669,  pB:1029, ic:'lav'},
+  {sku:'1KLAL',    name:'LaSalle s/h single ctrl lav',               cat:'Lavatory',    col:'LaSalle',   pA:569,  pB:919,  ic:'lav'},
+  {sku:'1BLAL',    name:'LaSalle 4" centre single ctrl lav',         cat:'Lavatory',    col:'LaSalle',   pA:669,  pB:1029, ic:'lav'},
+  {sku:'1CLAL/C/R',name:'LaSalle s/h dual handle lav set',           cat:'Lavatory',    col:'LaSalle',   pA:619,  pB:969,  ic:'lav'},
+  {sku:'T1GLAL/C/R',name:'LaSalle wall mount lav — trim only',      cat:'Lavatory',    col:'LaSalle',   pA:509,  pB:869,  ic:'lav'},
+  {sku:'T5ANVL/R', name:'Nouveau roman tub filler — trim only',     cat:'Tub',         col:'Nouveau',   pA:719,  pB:1149, ic:'tub'},
+  {sku:'T5ANLL/R', name:'Nouveau roman tub — LaSalle spout trim',   cat:'Tub',         col:'Nouveau',   pA:669,  pB:1099, ic:'tub'},
+  {sku:'T5HNVL/R', name:'Nouveau 4-pc roman tub + hand held',       cat:'Tub',         col:'Nouveau',   pA:1229, pB:1949, ic:'tub'},
+  {sku:'T5HNLL/R', name:'Nouveau 4-pc roman tub + HH — LaSalle',    cat:'Tub',         col:'Nouveau',   pA:1179, pB:1899, ic:'tub'},
+  {sku:'3GNVL/R',  name:'Nouveau floor mount tub filler + HH',      cat:'Tub',         col:'Nouveau',   pA:2669, pB:4099, ic:'tub'},
+  {sku:'3GNLL/R',  name:'Nouveau floor mount tub — LaSalle spout',  cat:'Tub',         col:'Nouveau',   pA:2619, pB:4049, ic:'tub'},
+  {sku:'T2ANVL/R', name:'3-valve tub filler w/ diverter — trim',    cat:'Tub',         col:'Nouveau',   pA:489,  pB:799,  ic:'tub'},
+  {sku:'T3ANVL/R', name:'2-valve tub filler — trim only',           cat:'Tub',         col:'Nouveau',   pA:329,  pB:539,  ic:'tub'},
+  {sku:'T3BNVL/R', name:'Wall mount tub filler — trim only',        cat:'Tub',         col:'Nouveau',   pA:559,  pB:919,  ic:'tub'},
+  {sku:'T5RNVL/R', name:'Pressure balance deck mount + HH — trim',  cat:'Tub',         col:'Nouveau',   pA:579,  pB:899,  ic:'tub'},
+  {sku:'2THOW',    name:'Tub filler spout — wall mount',             cat:'Tub',         col:'Universal', pA:269,  pB:399,  ic:'tub'},
+  {sku:'2THOD',    name:'Tub filler spout — deck mount',             cat:'Tub',         col:'Universal', pA:445,  pB:699,  ic:'tub'},
+  {sku:'2TGLD',    name:'Tub filler spout — deck mount LaSalle',     cat:'Tub',         col:'Universal', pA:390,  pB:649,  ic:'tub'},
+  {sku:'2TLAF',    name:'Tub filler spout — floor mount',            cat:'Tub',         col:'Universal', pA:689,  pB:1149, ic:'tub'},
+  {sku:'T20NVL/R', name:'Temp ctrl shower — 3-fn + HH + slide bar', cat:'Shower',      col:'Nouveau',   pA:1872, pB:2962, ic:'shw'},
+  {sku:'T21NVL/R', name:'Temp ctrl shower — 8" wall head',           cat:'Shower',      col:'Nouveau',   pA:2001, pB:3146, ic:'shw'},
+  {sku:'T22NVL/R', name:'Temp ctrl shower — 8" ceiling head',        cat:'Shower',      col:'Nouveau',   pA:1971, pB:3086, ic:'shw'},
+  {sku:'T23NVL/R', name:'Temp ctrl tub & shower — 3-way + spout',   cat:'Shower',      col:'Nouveau',   pA:2190, pB:3431, ic:'shw'},
+  {sku:'T24NVL/R', name:'Temp ctrl tub & shower — 8" wall head',    cat:'Shower',      col:'Nouveau',   pA:2319, pB:3615, ic:'shw'},
+  {sku:'T26NVL/R', name:'Temp ctrl shower + bidet / foot rinse',    cat:'Shower',      col:'Nouveau',   pA:2491, pB:3830, ic:'shw'},
+  {sku:'T30NVL/R', name:'Temp ctrl — 2 vol ctrl + 2 body sprays',   cat:'Shower',      col:'Nouveau',   pA:2350, pB:3729, ic:'shw'},
+  {sku:'T40NVL/R', name:'Temp ctrl — vol ctrl + slide bar + HH',    cat:'Shower',      col:'Nouveau',   pA:2032, pB:3211, ic:'shw'},
+  {sku:'T45NVL/R', name:'Temp ctrl — 3 vol ctrl + 4 body sprays',   cat:'Shower',      col:'Nouveau',   pA:2828, pB:4496, ic:'shw'},
+  {sku:'T48NVL/R', name:'Temp ctrl — 3 vol + 4 body + 12" ceiling', cat:'Shower',      col:'Nouveau',   pA:3197, pB:5135, ic:'shw'},
+  {sku:'4UNV1',    name:'Slide bar kit 8" head + HH (at diverter)',  cat:'Shower',      col:'Nouveau',   pA:1449, pB:2280, ic:'shw'},
+  {sku:'4UNV2',    name:'Slide bar kit 8" head + HH (at head)',      cat:'Shower',      col:'Nouveau',   pA:1679, pB:2595, ic:'shw'},
+  {sku:'4GNV0',    name:'Adjustable slide bar — single function',    cat:'Shower',      col:'Nouveau',   pA:594,  pB:999,  ic:'shw'},
+  {sku:'4GNV3',    name:'Adjustable slide bar — 3 function',         cat:'Shower',      col:'Nouveau',   pA:765,  pB:1213, ic:'shw'},
+  {sku:'4F035',    name:'3-fn shower head w/ 8" arm & flange',       cat:'Shower',      col:'Universal', pA:550,  pB:855,  ic:'shw'},
+  {sku:'4F014',    name:'8" shower head w/ arm — wall mount',        cat:'Shower',      col:'Universal', pA:684,  pB:1039, ic:'shw'},
+  {sku:'4F016',    name:'12" shower head w/ arm — wall mount',       cat:'Shower',      col:'Universal', pA:1099, pB:1784, ic:'shw'},
+  {sku:'4F216',    name:'12" shower head w/ arm — ceiling mount',    cat:'Shower',      col:'Universal', pA:919,  pB:1494, ic:'shw'},
+  {sku:'4J005',    name:'Body spray (each)',                          cat:'Shower',      col:'Universal', pA:159,  pB:259,  ic:'shw'},
+  {sku:'8AGNL/C',  name:'Genesis widespread kitchen faucet',         cat:'Kitchen',     col:'Genesis',   pA:729,  pB:1099, ic:'kit'},
+  {sku:'8AGNSL/C', name:'Genesis widespread kitchen + hand spray',   cat:'Kitchen',     col:'Genesis',   pA:949,  pB:1379, ic:'kit'},
+  {sku:'8AGLC/L',  name:'Genesis widespread — LaSalle spout',        cat:'Kitchen',     col:'Genesis',   pA:729,  pB:1099, ic:'kit'},
+  {sku:'8DGNL/C',  name:'Genesis two-handle s/h kitchen',            cat:'Kitchen',     col:'Genesis',   pA:619,  pB:969,  ic:'kit'},
+  {sku:'8KGNL',    name:'Genesis single control kitchen',             cat:'Kitchen',     col:'Genesis',   pA:584,  pB:944,  ic:'kit'},
+  {sku:'8JGNL',    name:'Genesis s/c kitchen + retractable spray',   cat:'Kitchen',     col:'Genesis',   pA:779,  pB:999,  ic:'kit'},
+  {sku:'8IGNL',    name:'Genesis s/c kitchen + industrial spray',    cat:'Kitchen',     col:'Genesis',   pA:1099, pB:1549, ic:'kit'},
+  {sku:'8EGNL/C',  name:'Genesis pot filler — wall mount',           cat:'Kitchen',     col:'Genesis',   pA:949,  pB:1399, ic:'kit'},
+  {sku:'8HGNL/C',  name:'Genesis pot filler — deck mount',           cat:'Kitchen',     col:'Genesis',   pA:949,  pB:1399, ic:'kit'},
+  {sku:'8ANVL/R',  name:'Nouveau widespread kitchen faucet',         cat:'Kitchen',     col:'Nouveau',   pA:779,  pB:1149, ic:'kit'},
+  {sku:'8ANVSL/R', name:'Nouveau widespread kitchen + hand spray',   cat:'Kitchen',     col:'Nouveau',   pA:999,  pB:1429, ic:'kit'},
+  {sku:'8DNVL/R',  name:'Nouveau two-handle s/h kitchen',            cat:'Kitchen',     col:'Nouveau',   pA:669,  pB:1019, ic:'kit'},
+  {sku:'8KNVL',    name:'Nouveau single control kitchen',             cat:'Kitchen',     col:'Nouveau',   pA:619,  pB:969,  ic:'kit'},
+  {sku:'8JNVL',    name:'Nouveau s/c kitchen + retractable spray',   cat:'Kitchen',     col:'Nouveau',   pA:1099, pB:1449, ic:'kit'},
+  {sku:'8JNML',    name:'Nouveau mini s/c kitchen + retractable',    cat:'Kitchen',     col:'Nouveau',   pA:849,  pB:1099, ic:'kit'},
+  {sku:'8ENVL/R',  name:'Nouveau pot filler — wall mount',           cat:'Kitchen',     col:'Nouveau',   pA:999,  pB:1449, ic:'kit'},
+  {sku:'8YGNL',    name:'Genesis single control bar faucet',         cat:'Bar',         col:'Genesis',   pA:559,  pB:919,  ic:'kit'},
+  {sku:'8YGLL',    name:'Genesis s/c bar — LaSalle spout',           cat:'Bar',         col:'Genesis',   pA:559,  pB:919,  ic:'kit'},
+  {sku:'8PGNL/C',  name:'Genesis two-handle s/h bar faucet',         cat:'Bar',         col:'Genesis',   pA:569,  pB:919,  ic:'kit'},
+  {sku:'8PGNSL/C', name:'Genesis two-handle s/h bar + hand spray',   cat:'Bar',         col:'Genesis',   pA:789,  pB:1199, ic:'kit'},
+  {sku:'8YNVL',    name:'Nouveau single control bar faucet',         cat:'Bar',         col:'Nouveau',   pA:569,  pB:919,  ic:'kit'},
+  {sku:'8PNVL/R',  name:'Nouveau two-handle s/h bar faucet',         cat:'Bar',         col:'Nouveau',   pA:619,  pB:969,  ic:'kit'},
+  {sku:'8PNVSL/R', name:'Nouveau two-handle s/h bar + hand spray',   cat:'Bar',         col:'Nouveau',   pA:839,  pB:1249, ic:'kit'},
+  {sku:'9YSD2',    name:'Soap dispenser',                            cat:'Accessories', col:'Universal', pA:165,  pB:249,  ic:'acc'},
+  {sku:'9HBD5',    name:'Wall mount bidet & foot rinse',             cat:'Accessories', col:'Universal', pA:459,  pB:619,  ic:'acc'},
+  {sku:'9DPU12',   name:'Push-up drain w/ overflow — exposed',       cat:'Accessories', col:'Universal', pA:125,  pB:179,  ic:'acc'},
+  {sku:'9DPU14',   name:'Push-up drain w/o overflow — exposed',      cat:'Accessories', col:'Universal', pA:125,  pB:179,  ic:'acc'},
+  {sku:'9DPT3',    name:'Bottle trap w/ flange — exposed',           cat:'Accessories', col:'Universal', pA:190,  pB:299,  ic:'acc'},
+  {sku:'9KLV2',    name:'Contemporary supply kit — exposed',         cat:'Accessories', col:'Universal', pA:359,  pB:549,  ic:'acc'},
+  {sku:'9KWC2',    name:'Toilet supply kit — contemporary exposed',  cat:'Accessories', col:'Universal', pA:199,  pB:299,  ic:'acc'},
+  {sku:'9EW02',    name:'Waste & overflow 22" — solid brass',        cat:'Accessories', col:'Universal', pA:338,  pB:408,  ic:'acc'},
+  {sku:'9EW03',    name:'Waste & overflow 27" — solid brass',        cat:'Accessories', col:'Universal', pA:378,  pB:448,  ic:'acc'},
+  {sku:'8FCN1',    name:'Cold water drinking faucet — contemporary', cat:'Accessories', col:'Universal', pA:449,  pB:599,  ic:'kit'},
+  {sku:'8FCS1',    name:'Cold water drinking faucet — classic',      cat:'Accessories', col:'Universal', pA:449,  pB:599,  ic:'kit'},
+];
+
+// Placeholder SVG shapes per category
+const PH={
+  lav:`<ellipse cx="28" cy="22" rx="9" ry="12" fill="none" stroke="rgba(196,163,90,.4)" stroke-width="1"/><line x1="28" y1="34" x2="28" y2="42" stroke="rgba(196,163,90,.3)" stroke-width="1.5" stroke-linecap="round"/><line x1="22" y1="42" x2="34" y2="42" stroke="rgba(196,163,90,.3)" stroke-width="1.5" stroke-linecap="round"/><circle cx="28" cy="22" r="3" fill="none" stroke="rgba(196,163,90,.5)" stroke-width=".7"/>`,
+  tub:`<rect x="11" y="30" width="34" height="14" rx="4" fill="none" stroke="rgba(196,163,90,.4)" stroke-width="1"/><path d="M15 30 Q15 18 23 18 L29 18" fill="none" stroke="rgba(196,163,90,.35)" stroke-width="1.2" stroke-linecap="round"/><line x1="29" y1="18" x2="29" y2="14" stroke="rgba(196,163,90,.3)" stroke-width="1.2" stroke-linecap="round"/>`,
+  shw:`<path d="M19 14 Q28 8 37 14" fill="none" stroke="rgba(196,163,90,.38)" stroke-width="1.2" stroke-linecap="round"/><line x1="28" y1="14" x2="28" y2="27" stroke="rgba(196,163,90,.4)" stroke-width="1.2" stroke-linecap="round"/><line x1="22" y1="27" x2="34" y2="27" stroke="rgba(196,163,90,.32)" stroke-width="1.5"/><line x1="23" y1="31" x2="23" y2="38" stroke="rgba(196,163,90,.25)" stroke-width=".8" stroke-linecap="round"/><line x1="28" y1="31" x2="28" y2="40" stroke="rgba(196,163,90,.25)" stroke-width=".8" stroke-linecap="round"/><line x1="33" y1="31" x2="33" y2="38" stroke="rgba(196,163,90,.25)" stroke-width=".8" stroke-linecap="round"/>`,
+  kit:`<path d="M15 16 L15 37" stroke="rgba(196,163,90,.32)" stroke-width="1" stroke-linecap="round"/><path d="M15 21 Q15 15 24 15 L37 15" fill="none" stroke="rgba(196,163,90,.42)" stroke-width="1.2" stroke-linecap="round"/><line x1="37" y1="15" x2="37" y2="27" stroke="rgba(196,163,90,.38)" stroke-width="1.2" stroke-linecap="round"/><ellipse cx="37" cy="29" rx="2.5" ry="2" fill="none" stroke="rgba(196,163,90,.38)" stroke-width=".7"/>`,
+  acc:`<rect x="17" y="20" width="22" height="17" rx="3" fill="none" stroke="rgba(196,163,90,.38)" stroke-width="1"/><circle cx="28" cy="28.5" r="3" fill="none" stroke="rgba(196,163,90,.45)" stroke-width=".7"/><line x1="28" y1="37" x2="28" y2="42" stroke="rgba(196,163,90,.3)" stroke-width="1" stroke-linecap="round"/>`,
+};
+const TINTS={'Nouveau':'rgba(196,163,90,.07)','LaSalle':'rgba(168,196,212,.06)','Genesis':'rgba(120,189,126,.05)','Universal':'rgba(90,86,80,.07)'};
+
+function prodPH(ic,col){
+  const t=TINTS[col]||'rgba(196,163,90,.06)';
+  return`<svg viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><rect width="56" height="56" fill="${t}"/>${PH[ic]||PH.acc}<text class="ph-label" x="28" y="52">photo coming</text></svg>`;
+}
+function cartPH(ic,col){
+  const t=TINTS[col]||'rgba(196,163,90,.06)';
+  return`<svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><rect width="60" height="60" fill="${t}"/><g transform="translate(2,2) scale(1.07)">${PH[ic]||PH.acc}</g><text class="ph-label" x="30" y="56">photo coming</text></svg>`;
+}
+
+// ── STATE ──
+let cart=[],selFinish='Polished Chrome',selCat='A',filterCat='All',sendMethods={},dealerMult=0.60;
+let dealerProfile={name:'Apex Kitchen & Bath',city:'Toronto, ON',phone:'(416) 555-0182',email:'info@apexbath.ca',web:'www.apexbath.ca'};
+let deferredInstall=null;
+
+// ── PWA ──
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./rubinet-sw.js').catch(()=>{});
+  });
+}
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();deferredInstall=e;
+  if(!localStorage.getItem('pwa_dismissed')) document.getElementById('install-banner').classList.add('show');
+});
+function installPWA(){if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice.then(()=>{deferredInstall=null;dismissInstall();});}}
+function dismissInstall(){document.getElementById('install-banner').classList.remove('show');localStorage.setItem('pwa_dismissed','1');}
+window.addEventListener('appinstalled',()=>{dismissInstall();showToast('Rubinet installed — find it on your home screen');});
+
+// ── SIDEBAR TOGGLE (mobile) ──
+let sbOpen=false;
+function toggleSidebar(){
+  sbOpen=!sbOpen;
+  const sb=document.getElementById('sidebar');
+  if(sbOpen){sb.style.cssText='display:flex;position:fixed;top:0;left:0;height:100%;z-index:100;width:240px;transform:translateX(0)';
+    document.getElementById('app').insertAdjacentHTML('beforeend','<div id="sb-overlay" onclick="toggleSidebar()" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:99"></div>');
+  } else {sb.style.cssText='';const ov=document.getElementById('sb-overlay');if(ov)ov.remove();}
+}
+
+// ── NAVIGATION ──
+function nav(el){
+  document.querySelectorAll('.ni,.mob-tab').forEach(n=>n.classList.remove('on'));
+  const pid=el.dataset.panel;
+  document.querySelectorAll('[data-panel="'+pid+'"]').forEach(n=>n.classList.add('on'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById(pid).classList.add('on');
+  const titles={'p-home':'Dashboard','p-new':'New quote','p-quotes':'My quotes','p-catalogue':'Price list 2023','p-settings':'Settings','p-success':'Quote sent'};
+  document.getElementById('tb-title').textContent=titles[pid]||'';
+  document.getElementById('prog-bar').style.display=pid==='p-new'?'block':'none';
+  if(pid==='p-quotes') renderQuotesPanel();
+  if(pid==='p-home')   refreshDashboard();
+  if(sbOpen)toggleSidebar();
+}
+
+function startQuote(){cart=[];sendMethods={};goStep(1);}
+
+function goStep(n){
+  [1,2,3,4].forEach(i=>{const el=document.getElementById('step'+i);if(el)el.style.display=i===n?'block':'none';});
+  document.getElementById('prog').style.width={1:25,2:50,3:75,4:100}[n]+'%';
+  if(n===2)renderProds();if(n===3)renderCart();if(n===4)populateSend();
+}
+
+// ── PRODUCTS ──
+function setCat(el,cat){document.querySelectorAll('.cat-pill').forEach(p=>p.classList.remove('on'));el.classList.add('on');filterCat=cat;renderProds();}
+
+function pickFinish(el,name,letter){
+  document.querySelectorAll('.swatch').forEach(s=>s.classList.remove('on'));el.classList.add('on');
+  selFinish=name;selCat=letter;
+  document.getElementById('finish-name').textContent=name+' — Category '+letter+' pricing applied';
+  cart.forEach(c=>{c.finish=name;c.catLetter=letter;c.price=letter==='A'?c.pA:c.pB;});
+}
+
+function renderProds(){
+  const q=(document.getElementById('psearch').value||'').toLowerCase();
+  const list=CAT.filter(p=>{
+    const cOk=filterCat==='All'||p.cat===filterCat;
+    const qOk=!q||p.name.toLowerCase().includes(q)||p.sku.toLowerCase().includes(q)||p.col.toLowerCase().includes(q);
+    return cOk&&qOk;
+  });
+  document.getElementById('prod-list').innerHTML=list.slice(0,30).map(p=>{
+    const inCart=cart.find(c=>c.sku===p.sku);
+    const px=selCat==='A'?p.pA:p.pB;
+    const key=p.sku.replace(/\//g,'__');
+    return`<div class="prod-row${inCart?' sel':''}" onclick="toggleCart('${key}')">
+      <div class="prod-img-wrap">${prodPH(p.ic,p.col)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="prod-name">${p.name}</div>
+        <div class="prod-sku">SKU: ${p.sku} · ${p.col}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div class="prod-price">$${px.toLocaleString()}</div>
+        <div class="prod-price-sub">Cat ${selCat}</div>
+      </div>
+      <div class="sel-dot${inCart?' on':''}"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+    </div>`;
+  }).join('')+(list.length>30?`<div style="padding:11px 16px;font-size:11px;color:var(--stone);text-align:center">${list.length-30} more — refine search</div>`:'');
+}
+
+function toggleCart(key){
+  const sku=key.replace(/__/g,'/');
+  const p=CAT.find(x=>x.sku===sku);
+  const idx=cart.findIndex(c=>c.sku===sku);
+  if(idx>=0)cart.splice(idx,1);
+  else cart.push({...p,qty:1,finish:selFinish,catLetter:selCat,price:selCat==='A'?p.pA:p.pB});
+  renderProds();
+}
+
+function renderCart(){
+  const el=document.getElementById('cart-items');
+  if(!cart.length){el.innerHTML='<div style="text-align:center;color:var(--stone);padding:24px;font-size:13px">No products added — go back to select items</div>';updateSummary();return;}
+  el.innerHTML=cart.map((c,i)=>`
+    <div class="cart-item">
+      <div class="ci-top">
+        <div class="ci-img-wrap">${cartPH(c.ic,c.col)}</div>
+        <div style="flex:1;min-width:0">
+          <div class="ci-name">${c.name}</div>
+          <div class="ci-sub">SKU: ${c.sku} · ${c.finish} · Cat ${c.catLetter}</div>
+        </div>
+        <button class="ci-rm" onclick="removeItem(${i})">×</button>
+      </div>
+      <div class="ci-footer">
+        <div class="qty-ctrl">
+          <button class="qbtn" onclick="chgQty(${i},-1)">−</button>
+          <span class="qval">${c.qty}</span>
+          <button class="qbtn" onclick="chgQty(${i},1)">＋</button>
+        </div>
+        <div>
+          <div class="ci-retail">$${(c.price*c.qty).toLocaleString()}</div>
+          <div class="ci-dealer-price">$${c.price.toLocaleString()} each</div>
+        </div>
+      </div>
+    </div>`).join('');
+  updateSummary();
+}
+
+function removeItem(i){cart.splice(i,1);renderCart();}
+function chgQty(i,d){cart[i].qty=Math.max(1,cart[i].qty+d);renderCart();}
+
+function updateSummary(){
+  const list=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const net=Math.round(list*dealerMult);
+  const margin=list-net;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('s-sub','$'+list.toLocaleString());
+  set('s-dealer','$'+net.toLocaleString());
+  set('s-margin','$'+margin.toLocaleString());
+  set('s-total','$'+list.toLocaleString());
+  set('s4-total','$'+list.toLocaleString());
+}
+
+function populateSend(){
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('s4-client',document.getElementById('cname').value||'New Client');
+  set('s4-items',cart.length+' item'+(cart.length!==1?'s':''));
+  set('s4-finish',selFinish+' (Cat '+selCat+')');
+  set('s4-lead',document.getElementById('lead-time').value);
+  updateSummary();
+}
+
+function toggleSend(key){
+  sendMethods[key]=!sendMethods[key];
+  document.getElementById('opt-'+key).classList.toggle('on',sendMethods[key]);
+  const active=Object.entries(sendMethods).filter(([,v])=>v).map(([k])=>({pdf:'Generate PDF',email:'Email',sms:'SMS/Text',link:'Shareable link'}[k]));
+  document.getElementById('send-cta').textContent=active.length?active.join(' + ')+' →':'Select a delivery method';
+}
+
+function handleSend(){
+  const active=Object.entries(sendMethods).filter(([,v])=>v).map(([k])=>k);
+  if(!active.length){showToast('Please select at least one delivery method');return;}
+  if(active.includes('pdf')){generatePDF();return;}
+  if(active.includes('email'))openEmail();
+  if(active.includes('link')){generateShareableLink();return;}
+  completeQuote(active);
+}
+
+// ── SHAREABLE LINK ──
+function generateShareableLink(){
+  const cname   = document.getElementById('cname').value   || 'Client';
+  const ccontact= document.getElementById('ccontact').value|| '';
+  const cemail  = document.getElementById('cemail').value  || '';
+  const cphone  = document.getElementById('cphone').value  || '';
+  const caddr   = document.getElementById('caddr').value   || '';
+  const ctype   = document.getElementById('ctype').value   || '';
+  const lead    = document.getElementById('lead-time').value|| '4–6 weeks';
+  const notes   = document.getElementById('cnotes').value  || '';
+  const listTotal = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const yr   = new Date().getFullYear();
+  const qRef = 'RQ-'+yr+'-'+(Math.floor(Math.random()*8000)+1000).toString().padStart(4,'0');
+  const expiry = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+
+  const payload = {
+    ref: qRef,
+    date: new Date().toISOString(),
+    expiry,
+    client: cname, contact: ccontact, email: cemail, phone: cphone,
+    addr: caddr, type: ctype, lead, notes,
+    finish: selFinish, catLetter: selCat,
+    items: cart.map(c=>({name:c.name,sku:c.sku,qty:c.qty,price:c.price,finish:c.finish||selFinish})),
+    listTotal,
+    dealer: {
+      name: dealerProfile.name,
+      city: dealerProfile.city,
+      phone: dealerProfile.phone,
+      email: dealerProfile.email,
+      web: dealerProfile.web||'',
+    }
+  };
+
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const url = window.location.href.split('#')[0] + '#client=' + encoded;
+    navigator.clipboard.writeText(url).then(()=>{
+      showToast('Link copied to clipboard');
+    }).catch(()=>{
+      prompt('Copy this link to share with your client:', url);
+    });
+    // Save as sent
+    const saved = saveQuote('Sent');
+    document.getElementById('ref-num').textContent    = saved.ref;
+    document.getElementById('ref-method').textContent = 'Shareable review link copied';
+    document.getElementById('suc-h').textContent = 'Link ready';
+    document.getElementById('suc-p').textContent = 'Paste the link into an email, iMessage, or WhatsApp for '+cname+'. They can approve online.';
+    refreshDashboard();
+    nav(document.querySelector('[data-panel=p-home]'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+    document.getElementById('p-success').classList.add('on');
+    document.getElementById('tb-title').textContent='Link ready';
+    document.getElementById('prog-bar').style.display='none';
+  } catch(e) {
+    showToast('Could not generate link — try PDF instead');
+  }
+}
+
+// ── CLIENT REVIEW SCREEN ──
+function checkForClientHash(){
+  const hash = window.location.hash;
+  if(!hash.startsWith('#client=')) return false;
+  try {
+    const encoded = hash.slice('#client='.length);
+    const json    = decodeURIComponent(escape(atob(encoded)));
+    const q       = JSON.parse(json);
+    renderClientScreen(q);
+    return true;
+  } catch(e) {
+    // Malformed hash — ignore and let normal boot proceed
+    return false;
+  }
+}
+
+function renderClientScreen(q){
+  const screen = document.getElementById('screen-client');
+  screen.classList.remove('hidden');
+
+  // Header dealer info
+  document.getElementById('client-header-dealer').innerHTML =
+    (q.dealer?.name||'') + (q.dealer?.city ? '<br>'+q.dealer.city : '');
+
+  // Hero
+  document.getElementById('client-from-lbl').textContent =
+    'Quote prepared by ' + (q.dealer?.name || 'Your Rubinet dealer');
+  document.getElementById('client-h').textContent = q.client || 'Your Rubinet Quote';
+  document.getElementById('client-sub').textContent =
+    'Hi'+(q.contact?' '+q.contact.split(' ')[0]:'')+', please review the items below and approve or request changes.';
+
+  // Expiry badge
+  if(q.expiry){
+    const exp = new Date(q.expiry);
+    const now = new Date();
+    const daysLeft = Math.ceil((exp-now)/(1000*60*60*24));
+    const fmtExp = exp.toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+    document.getElementById('client-exp-text').textContent =
+      daysLeft > 0 ? 'Valid until ' + fmtExp + ' (' + daysLeft + ' days)' : 'This quote has expired';
+  }
+
+  // Items
+  const itemsEl = document.getElementById('client-items-list');
+  itemsEl.innerHTML = (q.items||[]).map(it=>`
+    <div class="client-item">
+      <div>
+        <div class="client-item-name">${it.name}</div>
+        <div class="client-item-sku">${it.sku} · ${it.finish||q.finish||''} · Qty ${it.qty}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="client-item-price">$${(it.price*it.qty).toLocaleString()}</div>
+        ${it.qty>1?`<div class="client-item-qty">$${it.price.toLocaleString()} ea.</div>`:''}
+      </div>
+    </div>`).join('') || '<div style="padding:16px 18px;color:var(--stone);font-size:12px">No items</div>';
+
+  // Total
+  document.getElementById('client-total').textContent = '$' + (q.listTotal||0).toLocaleString();
+
+  // Details
+  document.getElementById('client-ref').textContent    = q.ref || '—';
+  document.getElementById('client-finish').textContent = (q.finish||'—') + (q.catLetter?' (Category '+q.catLetter+')':'');
+  document.getElementById('client-lead').textContent   = q.lead || '—';
+  document.getElementById('client-type').textContent   = q.type || '—';
+  if(q.addr){
+    document.getElementById('client-addr').textContent = q.addr;
+    document.getElementById('client-addr-row').style.display='flex';
+  }
+
+  // Notes
+  if(q.notes){
+    document.getElementById('client-notes').textContent = q.notes;
+    document.getElementById('client-notes-section').style.display='block';
+  }
+
+  // Wire up approve/decline with dealer email
+  window._clientQuoteData = q;
+
+  // Footer
+  const d = q.dealer||{};
+  document.getElementById('client-footer-dealer').innerHTML =
+    `${d.name||'Your Rubinet dealer'}${d.city?' · '+d.city:''}<br>
+     ${d.phone||''}${d.phone&&d.email?' · ':''}${d.email||''}${d.web?'<br>'+d.web:''}`;
+}
+
+function clientApprove(){
+  const q = window._clientQuoteData;
+  if(!q) return;
+  const dealerEmail = q.dealer?.email || '';
+  const subject = encodeURIComponent('Quote Approved — ' + q.ref + ' · ' + q.client);
+  const body = encodeURIComponent(
+`Hi ${q.dealer?.name||''},
+
+Great news — ${q.client} has approved quote ${q.ref}.
+
+Items:
+${(q.items||[]).map(it=>`• ${it.name} (${it.sku}) × ${it.qty} — $${(it.price*it.qty).toLocaleString()}`).join('\n')}
+
+Total: $${(q.listTotal||0).toLocaleString()} CAD
+Finish: ${q.finish||'—'}${q.catLetter?' (Cat '+q.catLetter+')':''}
+Lead time: ${q.lead||'—'}
+
+Please proceed with the order at your earliest convenience.
+
+Thank you,
+${q.contact||q.client}`);
+
+  openMailto('mailto:'+dealerEmail+'?subject='+subject+'&body='+body);
+  document.getElementById('client-action-area').style.display='none';
+  document.getElementById('client-approved-state').style.display='block';
+}
+
+// ── PDF GENERATOR ──
+function generatePDF(){
+  const{jsPDF}=window.jspdf;
+  if(!jsPDF){showToast('PDF library loading — try again in a moment');return;}
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=18;
+  const gold=[196,163,90],dark=[14,13,11],stone=[90,86,80],cream=[234,228,218],ink=[21,19,16];
+
+  const cname=document.getElementById('cname').value||'Client';
+  const ccontact=document.getElementById('ccontact').value||'';
+  const cemail=document.getElementById('cemail').value||'';
+  const cphone=document.getElementById('cphone').value||'';
+  const caddr=document.getElementById('caddr').value||'';
+  const ctype=document.getElementById('ctype').value||'';
+  const lead=document.getElementById('lead-time').value||'4–6 weeks';
+  const notes=document.getElementById('cnotes').value||'';
+  const yr=new Date().getFullYear();
+  const qRef='RQ-'+yr+'-'+(Math.floor(Math.random()*500)+492).toString().padStart(4,'0');
+  const qDate=new Date().toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+  const validUntil=new Date(Date.now()+30*86400000).toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+  const listTotal=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const dealerNet=Math.round(listTotal*dealerMult);
+  const margin=listTotal-dealerNet;
+  const dlr=dealerProfile;
+
+  // Header
+  doc.setFillColor(...dark);doc.rect(0,0,W,54,'F');
+  doc.setFillColor(...gold);doc.rect(0,54,W,1.5,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');
+  doc.setFontSize(26);doc.setLetterSpacing(6);doc.text('RUBINET',M,23);doc.setLetterSpacing(0);
+  doc.setFontSize(8);doc.setTextColor(...gold);doc.text('FINE KITCHEN & BATH PRODUCTS',M,31);
+  doc.setFontSize(8);doc.setTextColor(170,164,155);
+  const dlrLine=[dlr.name,dlr.city,dlr.phone,dlr.email].filter(Boolean).join('  ·  ');
+  doc.text(dlrLine,M,42);
+  doc.setFontSize(9);doc.setTextColor(160,154,145);doc.text('QUOTE REFERENCE',W-M,21,{align:'right'});
+  doc.setFontSize(13);doc.setTextColor(255,255,255);doc.text(qRef,W-M,29,{align:'right'});
+  doc.setFontSize(8);doc.setTextColor(120,115,108);
+  doc.text('Issued: '+qDate,W-M,37,{align:'right'});
+  doc.text('Valid until: '+validUntil,W-M,43,{align:'right'});
+
+  let y=64;
+  // Client block
+  doc.setFontSize(8);doc.setTextColor(...stone);doc.text('PREPARED FOR',M,y);y+=6;
+  doc.setFontSize(15);doc.setTextColor(...dark);doc.text(cname,M,y);y+=6;
+  doc.setFontSize(9);doc.setTextColor(...stone);
+  [ccontact,cemail,cphone,caddr,ctype].filter(Boolean).forEach(l=>{doc.text(l,M,y);y+=5;});
+  y+=3;
+  doc.setDrawColor(...gold);doc.setLineWidth(0.3);doc.line(M,y,W-M,y);y+=8;
+
+  // Table header
+  doc.setFillColor(245,242,236);doc.rect(M,y,W-M*2,8,'F');
+  doc.setFontSize(8);doc.setTextColor(...stone);
+  doc.text('IMG',M+2,y+5.5);doc.text('SKU',M+16,y+5.5);doc.text('Product',M+42,y+5.5);
+  doc.text('Finish',M+110,y+5.5);doc.text('Cat',M+140,y+5.5);doc.text('Qty',M+151,y+5.5);
+  doc.text('Unit',M+160,y+5.5,{align:'right'});doc.text('Total',W-M-2,y+5.5,{align:'right'});
+  y+=10;
+
+  cart.forEach((c,i)=>{
+    if(y>248){doc.addPage();y=20;}
+    const rH=12;
+    if(i%2===1){doc.setFillColor(250,248,244);doc.rect(M,y-2,W-M*2,rH,'F');}
+    doc.setFillColor(30,28,24);doc.roundedRect(M+1,y-1,10,10,1,1,'F');
+    doc.setDrawColor(...gold);doc.setLineWidth(0.3);doc.roundedRect(M+1,y-1,10,10,1,1,'S');
+    doc.setFontSize(6);doc.setTextColor(...gold);doc.text('IMG',M+6,y+5,{align:'center'});
+    doc.setFontSize(8);doc.setTextColor(...dark);
+    doc.text(c.sku.substring(0,12),M+16,y+5);
+    const nm=c.name.length>44?c.name.substring(0,42)+'…':c.name;
+    doc.text(nm,M+42,y+5);
+    doc.setTextColor(...stone);
+    const fn=c.finish.length>14?c.finish.substring(0,12)+'…':c.finish;
+    doc.text(fn,M+110,y+5);doc.text(c.catLetter,M+142,y+5);doc.text(String(c.qty),M+153,y+5);
+    doc.setTextColor(...dark);
+    doc.text('$'+c.price.toLocaleString(),M+160,y+5,{align:'right'});
+    doc.setFont('helvetica','bold');
+    doc.text('$'+(c.price*c.qty).toLocaleString(),W-M-2,y+5,{align:'right'});
+    doc.setFont('helvetica','normal');
+    y+=rH;
+  });
+
+  y+=4;doc.setDrawColor(220,215,208);doc.setLineWidth(0.2);doc.line(M,y,W-M,y);y+=8;
+
+  // Totals
+  const cL=W-M-62,cR=W-M-2;
+  doc.setFontSize(9);
+  doc.setTextColor(...stone);doc.text('List price total',cL,y);
+  doc.setTextColor(...dark);doc.text('$'+listTotal.toLocaleString(),cR,y,{align:'right'});y+=7;
+  doc.setTextColor(...stone);doc.text('Your dealer net ('+Math.round(dealerMult*100)+'% of list)',cL,y);
+  doc.setTextColor(...gold);doc.text('$'+dealerNet.toLocaleString(),cR,y,{align:'right'});y+=7;
+  doc.setTextColor(...stone);doc.text('Your margin',cL,y);
+  doc.setRGB=()=>{};
+  doc.setTextColor(74,124,78);doc.text('$'+margin.toLocaleString(),cR,y,{align:'right'});y+=7;
+  y+=4;
+
+  // Total box
+  doc.setFillColor(...dark);doc.roundedRect(M,y,W-M*2,14,2,2,'F');
+  doc.setFontSize(10);doc.setTextColor(...gold);doc.text('CLIENT QUOTE TOTAL (CAD)',M+6,y+9);
+  doc.setFontSize(18);doc.setTextColor(255,255,255);doc.text('$'+listTotal.toLocaleString(),W-M-4,y+9.5,{align:'right'});
+  y+=22;
+
+  // Lead time + notes
+  doc.setFontSize(9);doc.setTextColor(...stone);doc.text('LEAD TIME',M,y);y+=5;
+  doc.setFontSize(10);doc.setTextColor(...dark);doc.text(lead,M,y);y+=8;
+  if(notes){
+    doc.setFontSize(9);doc.setTextColor(...stone);doc.text('NOTES',M,y);y+=5;
+    doc.setFontSize(9);doc.setTextColor(...dark);
+    const nl=doc.splitTextToSize(notes,W-M*2);doc.text(nl,M,y);y+=nl.length*5+4;
+  }
+  doc.setFontSize(9);doc.setTextColor(...stone);doc.text('SELECTED FINISH',M,y);y+=5;
+  doc.setFontSize(10);doc.setTextColor(...dark);doc.text(selFinish+' — Category '+selCat,M,y);
+
+  // Footer
+  const fY=282;
+  doc.setFillColor(...dark);doc.rect(0,fY-3,W,18,'F');
+  doc.setFontSize(8);doc.setTextColor(120,115,108);
+  doc.text('Rubinet Faucet Company Ltd. · 10 Corstate Ave, Concord ON L4K 4X2 · (800) 461-5901 · rubinet.com',W/2,fY+5,{align:'center'});
+  doc.setTextColor(...gold);
+  doc.text('All finishes produced to order in Canada · Lifetime warranty on finish and function · Prices in CAD',W/2,fY+10,{align:'center'});
+
+  const fname='Rubinet-Quote-'+qRef+'.pdf';
+  doc.save(fname);
+
+  const saved = saveQuote('Sent');
+  document.getElementById('ref-num').textContent    = saved.ref;
+  document.getElementById('ref-method').textContent = saved.ref+'.pdf saved to downloads';
+  document.getElementById('suc-h').textContent = 'PDF generated';
+  document.getElementById('suc-p').textContent = 'Share '+saved.ref+'.pdf with your client via email, iMessage, or WhatsApp.';
+  refreshDashboard();
+  // Navigate to success directly — skip completeQuote to avoid double-saving
+  nav(document.querySelector('[data-panel=p-home]'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-success').classList.add('on');
+  document.getElementById('tb-title').textContent='Quote ready';
+  document.getElementById('prog-bar').style.display='none';
+}
+
+function openEmail(){
+  const cname=document.getElementById('cname').value||'Client';
+  const cemail=document.getElementById('cemail').value||'';
+  const lead=document.getElementById('lead-time').value;
+  const notes=document.getElementById('cnotes').value;
+  const total=cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const items=cart.map(c=>`• ${c.name} (${c.sku}) · ${c.finish} · Qty ${c.qty} · $${(c.price*c.qty).toLocaleString()}`).join('\n');
+  const body=encodeURIComponent(`Dear ${cname},\n\nThank you for your interest in Rubinet. Please find your personalized quote below.\n\nITEMS QUOTED\n${items}\n\nTOTAL: $${total.toLocaleString()} CAD\nFINISH: ${selFinish} (Category ${selCat})\nLEAD TIME: ${lead}\n\n${notes?'NOTES\n'+notes+'\n\n':''}All Rubinet finishes are produced to order in Canada. This quote is valid for 30 days.\n\n${dealerProfile.name}\n${dealerProfile.phone} · ${dealerProfile.email}`);
+  openMailto('mailto:'+cemail+'?subject='+encodeURIComponent('Your Rubinet Quote — '+cname)+'&body='+body);
+  showToast('Email client opened');
+  completeQuote(['email']);
+}
+
+function completeQuote(methods){
+  const status = methods.includes('pdf')||methods.includes('email')||methods.includes('link') ? 'Sent' : 'Draft';
+  const saved  = saveQuote(status);
+  const labels ={pdf:'PDF generated',email:'Email drafted',sms:'Share PDF via phone',link:'Link ready'};
+  document.getElementById('ref-num').textContent    = saved.ref;
+  document.getElementById('ref-method').textContent = methods.map(m=>labels[m]).join(' · ');
+  nav(document.querySelector('[data-panel=p-home]'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
+  document.getElementById('p-success').classList.add('on');
+  document.getElementById('tb-title').textContent='Quote ready';
+  document.getElementById('prog-bar').style.display='none';
+  refreshDashboard();
+}
+
+// ── SETTINGS ──
+function updateMult(val){
+  const pct=parseInt(val);dealerMult=pct/100;
+  document.getElementById('mult-display').textContent=pct+'%';
+  document.getElementById('tb-mult').textContent=pct+'%';
+  document.getElementById('mp-cost').textContent='$'+pct.toLocaleString();
+  document.getElementById('mp-margin').textContent='$'+(100-pct).toLocaleString();
+  document.getElementById('s-pct').textContent=pct;
+  updateSummary();
+}
+
+function updateProfile(){
+  const n=document.getElementById('set-name').value||'Your Showroom';
+  const c=document.getElementById('set-city').value||'';
+  document.getElementById('sb-name').textContent=n+(c?' · '+c.split(',')[0]:'');
+  document.getElementById('sb-av').textContent=n.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+}
+
+function saveSettings(){
+  dealerMult=parseInt(document.getElementById('mult-slider').value)/100;
+  dealerProfile={
+    name:document.getElementById('set-name').value||'Your Showroom',
+    city:document.getElementById('set-city').value||'',
+    phone:document.getElementById('set-phone').value||'',
+    email:document.getElementById('set-email').value||'',
+    web:document.getElementById('set-web').value||'',
+  };
+  localStorage.setItem('rubinet_v4',JSON.stringify({mult:dealerMult,profile:dealerProfile}));
+  showToast('Settings saved');
+}
+
+function loadSettings(){
+  // If a dealer session is active, profile is loaded by launchDealerApp — skip localStorage override
+  const session=getSession&&getSession();
+  if(session&&session.role==='dealer') return;
+  const s=localStorage.getItem('rubinet_v4');
+  if(!s)return;
+  const d=JSON.parse(s);
+  if(d.mult){dealerMult=d.mult;const pct=Math.round(d.mult*100);document.getElementById('mult-slider').value=pct;updateMult(pct);}
+  if(d.profile){dealerProfile=d.profile;
+    ['name','city','phone','email','web'].forEach(k=>{const el=document.getElementById('set-'+k);if(el&&d.profile[k])el.value=d.profile[k];});
+    updateProfile();
+  }
+}
+
+// ── TOAST ──
+function showToast(msg,dur=3200){
+  document.querySelectorAll('.toast').forEach(x=>x.remove());
+  const t=document.createElement('div');
+  t.className='toast';
+  t.innerHTML=`<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg><span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),320);},dur);
+}
+// ── QUOTE PERSISTENCE ──
+const STORE_KEY = 'rubinet_quotes_v5';
+
+function loadQuotes() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveQuote(status) {
+  const quotes = loadQuotes();
+  const cname   = document.getElementById('cname').value   || 'New Client';
+  const cemail  = document.getElementById('cemail').value  || '';
+  const cphone  = document.getElementById('cphone').value  || '';
+  const ccontact= document.getElementById('ccontact').value|| '';
+  const caddr   = document.getElementById('caddr').value   || '';
+  const ctype   = document.getElementById('ctype').value   || '';
+  const lead    = document.getElementById('lead-time').value|| '4–6 weeks';
+  const notes   = document.getElementById('cnotes').value  || '';
+  const listTotal = cart.reduce((a,c)=>a+c.price*c.qty,0);
+  const yr   = new Date().getFullYear();
+  const qRef = 'RQ-'+yr+'-'+(Math.floor(Math.random()*8000)+1000).toString().padStart(4,'0');
+  const q = {
+    ref: qRef,
+    date: new Date().toISOString(),
+    status: status || 'Draft',
+    client: cname, contact: ccontact, email: cemail, phone: cphone,
+    addr: caddr, type: ctype, lead, notes,
+    finish: selFinish, catLetter: selCat,
+    items: JSON.parse(JSON.stringify(cart)),
+    listTotal, dealerMult,
+    dealerNet: Math.round(listTotal * dealerMult),
+    margin: listTotal - Math.round(listTotal * dealerMult),
+  };
+  quotes.unshift(q);
+  // Keep newest 200 quotes
+  if(quotes.length > 200) quotes.splice(200);
+  localStorage.setItem(STORE_KEY, JSON.stringify(quotes));
+  return q;
+}
+
+function deleteQuote(ref) {
+  const quotes = loadQuotes().filter(q => q.ref !== ref);
+  localStorage.setItem(STORE_KEY, JSON.stringify(quotes));
+  renderQuotesPanel();
+  refreshDashboard();
+  showToast('Quote deleted');
+}
+
+function setQuoteStatus(ref, status) {
+  const quotes = loadQuotes();
+  const q = quotes.find(x => x.ref === ref);
+  if(q) { q.status = status; localStorage.setItem(STORE_KEY, JSON.stringify(quotes)); }
+  renderQuotesPanel();
+  refreshDashboard();
+  showToast('Status updated to ' + status);
+}
+
+// ── QUOTES PANEL ──
+const STATUS_CLASSES = { Accepted:'b-ok', Sent:'b-sent', Draft:'b-draft', Declined:'b-dec' };
+const STATUS_CYCLE   = ['Draft','Sent','Accepted','Declined'];
+
+function renderQuotesPanel() {
+  const quotes = loadQuotes();
+  const panel  = document.getElementById('p-quotes');
+
+  // Stats
+  const total    = quotes.length;
+  const accepted = quotes.filter(q=>q.status==='Accepted').length;
+  const rate     = total ? Math.round(accepted/total*100) : 0;
+  const ytd      = quotes
+    .filter(q=>q.status==='Accepted' && new Date(q.date).getFullYear()===new Date().getFullYear())
+    .reduce((a,q)=>a+q.listTotal,0);
+
+  const statsHTML = `
+    <div class="stat-grid" style="margin-bottom:22px">
+      <div class="stat-card"><div class="stat-lbl">Total quotes</div><div class="stat-n">${total||'—'}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Accepted</div><div class="stat-n g">${accepted||'—'}</div></div>
+      <div class="stat-card"><div class="stat-lbl">Acceptance rate</div><div class="stat-n">${total?rate+'%':'—'}</div></div>
+      <div class="stat-card"><div class="stat-lbl">YTD accepted</div><div class="stat-n g" style="font-size:${ytd>99999?'18px':ytd>9999?'22px':'28px'};padding-top:${ytd>9999?'6px':'0'}">${ytd?'$'+ytd.toLocaleString():'—'}</div></div>
+    </div>`;
+
+  if(!quotes.length) {
+    panel.innerHTML = statsHTML + `
+      <div style="text-align:center;padding:60px 20px;color:var(--stone)">
+        <div style="font-size:38px;margin-bottom:12px">📋</div>
+        <div style="font-family:var(--fd);font-size:22px;color:var(--silver);margin-bottom:8px">No quotes yet</div>
+        <div style="font-size:13px">Create your first quote to see it here.</div>
+      </div>`;
+    return;
+  }
+
+  // Filter bar
+  const filterVal = panel.dataset.filter || 'All';
+  const filtered  = filterVal === 'All' ? quotes : quotes.filter(q=>q.status===filterVal);
+
+  const filterBar = `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px" id="qfilter-bar">
+      ${['All','Draft','Sent','Accepted','Declined'].map(f=>`
+        <button class="cat-pill${filterVal===f?' on':''}" onclick="filterQuotes('${f}')">${f}${f!=='All'?' ('+quotes.filter(q=>q.status===f).length+')':''}</button>
+      `).join('')}
+    </div>`;
+
+  const rows = filtered.map(q => {
+    const bc   = STATUS_CLASSES[q.status] || 'b-draft';
+    const dt   = new Date(q.date).toLocaleDateString('en-CA',{month:'short',day:'numeric',year:'numeric'});
+    const lead = (q.items||[]).length;
+    const nextStatus = STATUS_CYCLE[(STATUS_CYCLE.indexOf(q.status)+1)%STATUS_CYCLE.length];
+    return `
+      <div class="tbl-row" style="grid-template-columns:1.1fr 1.4fr .9fr .8fr .9fr .9fr auto;align-items:center">
+        <span class="mf" style="cursor:pointer" onclick="expandQuote('${q.ref}')">${q.ref}</span>
+        <span class="p">${q.client}</span>
+        <span style="font-size:11px;color:var(--stone)">${dt}</span>
+        <span style="font-size:11px;color:var(--stone)">${lead} item${lead!==1?'s':''} · ${q.catLetter}</span>
+        <span class="g" style="font-family:var(--fd);font-size:15px">$${(q.listTotal||0).toLocaleString()}</span>
+        <span>
+          <span class="badge ${bc}" style="cursor:pointer;user-select:none" title="Click to advance status" onclick="setQuoteStatus('${q.ref}','${nextStatus}')">${q.status}</span>
+        </span>
+        <span style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-sm" onclick="regenPDF('${q.ref}')" title="Re-download PDF">
+            <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>PDF
+          </button>
+          <button class="btn btn-ghost btn-sm" style="color:#C47A7A;border-color:rgba(124,58,58,.3)" onclick="confirmDeleteQuote('${q.ref}')" title="Delete">✕</button>
+        </span>
+      </div>
+      <div id="expand-${q.ref}" style="display:none;background:var(--carbon);border-bottom:1px solid var(--border);padding:12px 16px 14px;font-size:12px;color:var(--stone);line-height:1.9">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px 24px">
+          ${q.contact?`<div><span style="color:var(--pewter)">Contact:</span> ${q.contact}</div>`:''}
+          ${q.email?`<div><span style="color:var(--pewter)">Email:</span> ${q.email}</div>`:''}
+          ${q.phone?`<div><span style="color:var(--pewter)">Phone:</span> ${q.phone}</div>`:''}
+          <div><span style="color:var(--pewter)">Finish:</span> ${q.finish||'—'}</div>
+          <div><span style="color:var(--pewter)">Lead time:</span> ${q.lead||'—'}</div>
+          <div><span style="color:var(--pewter)">Dealer net:</span> $${(q.dealerNet||0).toLocaleString()} <span style="color:var(--success)">(+$${(q.margin||0).toLocaleString()})</span></div>
+        </div>
+        ${q.items&&q.items.length?`
+          <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">
+            ${q.items.map(it=>`<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.03)"><span style="color:var(--silver)">${it.name} <span style="color:var(--stone);font-size:10px">${it.sku}</span></span><span style="font-family:var(--fd);font-size:13px;color:var(--cream)">×${it.qty} · $${(it.price*it.qty).toLocaleString()}</span></div>`).join('')}
+          </div>`:''}
+        ${q.notes?`<div style="margin-top:8px;color:var(--pewter);font-style:italic">"${q.notes}"</div>`:''}
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = statsHTML + filterBar + `
+    <div class="tbl">
+      <div class="tbl-head" style="grid-template-columns:1.1fr 1.4fr .9fr .8fr .9fr .9fr auto">
+        <span>Quote #</span><span>Client</span><span>Date</span><span>Items</span><span>Total</span><span>Status</span><span></span>
+      </div>
+      ${rows}
+    </div>`;
+}
+
+function filterQuotes(val) {
+  document.getElementById('p-quotes').dataset.filter = val;
+  renderQuotesPanel();
+}
+
+function expandQuote(ref) {
+  const el = document.getElementById('expand-'+ref);
+  if(!el) return;
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function confirmDeleteQuote(ref) {
+  if(confirm('Delete quote '+ref+'? This cannot be undone.')) deleteQuote(ref);
+}
+
+// Re-generate PDF from saved quote data
+function regenPDF(ref) {
+  const q = loadQuotes().find(x => x.ref === ref);
+  if(!q) return;
+  const{jsPDF}=window.jspdf;
+  if(!jsPDF){showToast('PDF library loading — try again');return;}
+  generatePDFFromData(q);
+}
+
+// ── DASHBOARD ──
+function refreshDashboard() {
+  const quotes  = loadQuotes();
+  const active  = quotes.filter(q=>q.status==='Draft'||q.status==='Sent').length;
+  const accepted= quotes.filter(q=>q.status==='Accepted').length;
+  const awaiting= quotes.filter(q=>q.status==='Sent').length;
+  const total   = quotes.length;
+  const rate    = total ? Math.round(accepted/total*100) : 0;
+  const now     = new Date();
+  const monthRev= quotes
+    .filter(q=>q.status==='Accepted' && (() => {const d=new Date(q.date);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();})())
+    .reduce((a,q)=>a+q.listTotal,0);
+
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
+  set('dash-active',  active  || '—');
+  set('dash-accepted',accepted|| '—');
+  set('dash-awaiting',awaiting|| '—');
+  set('dash-rev',     monthRev? '$'+fmtK(monthRev) : '—');
+  set('dash-rate',    total? rate+'%' : '—');
+
+  // Recent quotes table
+  const tbody = document.getElementById('dash-rows');
+  if(!tbody) return;
+  const recent = quotes.slice(0,8);
+  if(!recent.length){tbody.innerHTML=`<div style="padding:18px 16px;color:var(--stone);font-size:12px;text-align:center">No quotes yet — create your first one</div>`;return;}
+  const bc=STATUS_CLASSES;
+  tbody.innerHTML = recent.map(q=>{
+    const firstItem = q.items&&q.items[0] ? q.items[0].name.substring(0,22)+(q.items[0].name.length>22?'…':'') : '—';
+    return`<div class="tbl-row" style="grid-template-columns:1.1fr 1.4fr 1fr .8fr 1fr .8fr;cursor:pointer" onclick="nav(document.querySelector('[data-panel=p-quotes]'));renderQuotesPanel()">
+      <span class="mf">${q.ref}</span>
+      <span class="p">${q.client}</span>
+      <span>${firstItem}</span>
+      <span>${q.finish||'—'}</span>
+      <span class="g" style="font-family:var(--fd);font-size:15px">$${(q.listTotal||0).toLocaleString()}</span>
+      <span><span class="badge ${bc[q.status]||'b-draft'}">${q.status}</span></span>
+    </div>`;
+  }).join('');
+}
+
+function fmtK(n){return n>=1000?Math.round(n/100)/10+'k':n.toString();}
+
+// ── PDF FROM SAVED DATA ──
+function generatePDFFromData(q) {
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210,M=18;
+  const gold=[196,163,90],dark=[14,13,11],stone=[90,86,80],cream=[234,228,218];
+  const dlr=dealerProfile;
+  const qDate=new Date(q.date).toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+  const validUntil=new Date(new Date(q.date).getTime()+30*86400000).toLocaleDateString('en-CA',{year:'numeric',month:'long',day:'numeric'});
+
+  doc.setFillColor(...dark);doc.rect(0,0,W,54,'F');
+  doc.setFillColor(...gold);doc.rect(0,54,W,1.5,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','normal');
+  doc.setFontSize(26);doc.setLetterSpacing(6);doc.text('RUBINET',M,23);doc.setLetterSpacing(0);
+  doc.setFontSize(8);doc.setTextColor(...gold);doc.text('FINE KITCHEN & BATH PRODUCTS',M,31);
+  doc.setFontSize(8);doc.setTextColor(170,164,155);
+  doc.text([dlr.name,dlr.city,dlr.phone,dlr.email].filter(Boolean).join('  ·  '),M,42);
+  doc.setFontSize(9);doc.setTextColor(160,154,145);doc.text('QUOTE REFERENCE',W-M,21,{align:'right'});
+  doc.setFontSize(13);doc.setTextColor(255,255,255);doc.text(q.ref,W-M,29,{align:'right'});
+  doc.setFontSize(8);doc.setTextColor(120,115,108);
+  doc.text('Issued: '+qDate,W-M,37,{align:'right'});
+  doc.text('Valid until: '+validUntil,W-M,43,{align:'right'});
+
+  let y=64;
+  doc.setFontSize(8);doc.setTextColor(...stone);doc.text('PREPARED FOR',M,y);y+=6;
+  doc.setFontSize(15);doc.setTextColor(...dark);doc.text(q.client,M,y);y+=6;
+  doc.setFontSize(9);doc.setTextColor(...stone);
+  [q.contact,q.email,q.phone,q.addr,q.type].filter(Boolean).forEach(l=>{doc.text(l,M,y);y+=5;});
+  y+=3;
+  doc.setDrawColor(...gold);doc.setLineWidth(0.3);doc.line(M,y,W-M,y);y+=8;
+
+  doc.setFillColor(245,242,236);doc.rect(M,y,W-M*2,8,'F');
+  doc.setFontSize(8);doc.setTextColor(...stone);
+  doc.text('IMG',M+2,y+5.5);doc.text('SKU',M+16,y+5.5);doc.text('Product',M+42,y+5.5);
+  doc.text('Finish',M+110,y+5.5);doc.text('Cat',M+140,y+5.5);doc.text('Qty',M+151,y+5.5);
+  doc.text('Unit',M+160,y+5.5,{align:'right'});doc.text('Total',W-M-2,y+5.5,{align:'right'});
+  y+=10;
+
+  (q.items||[]).forEach((c,i)=>{
+    if(y>248){doc.addPage();y=20;}
+    const rH=12;
+    if(i%2===1){doc.setFillColor(250,248,244);doc.rect(M,y-2,W-M*2,rH,'F');}
+    doc.setFillColor(30,28,24);doc.roundedRect(M+1,y-1,10,10,1,1,'F');
+    doc.setDrawColor(...gold);doc.setLineWidth(0.3);doc.roundedRect(M+1,y-1,10,10,1,1,'S');
+    doc.setFontSize(6);doc.setTextColor(...gold);doc.text('IMG',M+6,y+5,{align:'center'});
+    doc.setFontSize(8);doc.setTextColor(...dark);
+    doc.text((c.sku||'').substring(0,12),M+16,y+5);
+    const nm=c.name.length>44?c.name.substring(0,42)+'…':c.name;
+    doc.text(nm,M+42,y+5);
+    doc.setTextColor(...stone);
+    const fn=(c.finish||'').length>14?(c.finish||'').substring(0,12)+'…':(c.finish||'');
+    doc.text(fn,M+110,y+5);doc.text(c.catLetter||'',M+142,y+5);doc.text(String(c.qty),M+153,y+5);
+    doc.setTextColor(...dark);
+    doc.text('$'+c.price.toLocaleString(),M+160,y+5,{align:'right'});
+    doc.setFont('helvetica','bold');
+    doc.text('$'+(c.price*c.qty).toLocaleString(),W-M-2,y+5,{align:'right'});
+    doc.setFont('helvetica','normal');
+    y+=rH;
+  });
+
+  y+=4;doc.setDrawColor(220,215,208);doc.setLineWidth(0.2);doc.line(M,y,W-M,y);y+=8;
+  const cL=W-M-62,cR=W-M-2;
+  doc.setFontSize(18);
+  doc.setFillColor(...dark);doc.roundedRect(M,y,W-M*2,14,2,2,'F');
+  doc.setFontSize(10);doc.setTextColor(...gold);doc.text('CLIENT QUOTE TOTAL (CAD)',M+6,y+9);
+  doc.setFontSize(18);doc.setTextColor(255,255,255);doc.text('$'+(q.listTotal||0).toLocaleString(),W-M-4,y+9.5,{align:'right'});
+  y+=22;
+
+  doc.setFontSize(9);doc.setTextColor(...stone);doc.text('LEAD TIME',M,y);y+=5;
+  doc.setFontSize(10);doc.setTextColor(...dark);doc.text(q.lead||'',M,y);y+=8;
+  if(q.notes){
+    doc.setFontSize(9);doc.setTextColor(...stone);doc.text('NOTES',M,y);y+=5;
+    doc.setFontSize(9);doc.setTextColor(...dark);
+    const nl=doc.splitTextToSize(q.notes,W-M*2);doc.text(nl,M,y);y+=nl.length*5+4;
+  }
+  doc.setFontSize(9);doc.setTextColor(...stone);doc.text('SELECTED FINISH',M,y);y+=5;
+  doc.setFontSize(10);doc.setTextColor(...dark);doc.text((q.finish||'')+(q.catLetter?' — Category '+q.catLetter:''),M,y);
+
+  const fY=282;
+  doc.setFillColor(...dark);doc.rect(0,fY-3,W,18,'F');
+  doc.setFontSize(8);doc.setTextColor(120,115,108);
+  doc.text('Rubinet Faucet Company Ltd. · 10 Corstate Ave, Concord ON L4K 4X2 · (800) 461-5901 · rubinet.com',W/2,fY+5,{align:'center'});
+  doc.setTextColor(...gold);
+  doc.text('All finishes produced to order in Canada · Lifetime warranty on finish and function · Prices in CAD',W/2,fY+10,{align:'center'});
+
+  doc.save('Rubinet-Quote-'+q.ref+'.pdf');
+  showToast('PDF saved — '+q.ref);
+}
+
+// ════════════════════════════════════════════════════════
+// DATA LAYER — swap this section for server calls later
+// ════════════════════════════════════════════════════════
+const ADMIN_PIN    = 'Frank';          // Rubinet master PIN — change before deploy
+const DEALERS_KEY  = 'rubinet_dealers_v1';
+
+function dbGetDealers()  { try{return JSON.parse(localStorage.getItem(DEALERS_KEY))||[];}catch(e){return [];} }
+function dbSaveDealers(d){ localStorage.setItem(DEALERS_KEY, JSON.stringify(d)); }
+function dbGetDealer(pin){ return dbGetDealers().find(d=>d.pin===pin&&d.active); }
+
+function generateDealerPIN(){
+  // 6-char alphanumeric, avoids ambiguous chars (0/O, 1/l)
+  const chars='23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+  let pin='';
+  for(let i=0;i<6;i++) pin+=chars[Math.floor(Math.random()*chars.length)];
+  // Ensure unique
+  const existing=dbGetDealers().map(d=>d.pin);
+  return existing.includes(pin)?generateDealerPIN():pin;
+}
+
+// ════════════════════════════════════════════════════════
+// AUTH FLOW
+// ════════════════════════════════════════════════════════
+const SESSION_KEY = 'rubinet_session_v1';
+
+function getSession(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY))||null;}catch(e){return null;} }
+function setSession(s){ localStorage.setItem(SESSION_KEY, JSON.stringify(s)); }
+function clearSession(){ localStorage.removeItem(SESSION_KEY); }
+
+function bootApp(){
+  // Client review link takes priority — no login needed
+  if(checkForClientHash()) return;
+  const session = getSession();
+  if(session && session.role==='dealer'){
+    const dealer = dbGetDealer(session.pin);
+    if(dealer){ launchDealerApp(dealer); return; }
+    clearSession();
+  }
+  showDealerLogin();
+}
+
+function showDealerLogin(){
+  document.getElementById('screen-login').classList.remove('hidden');
+  document.getElementById('screen-admin-login').classList.add('hidden');
+  document.getElementById('screen-admin').classList.add('hidden');
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-pin').value='';
+  document.getElementById('login-err').textContent='';
+  setTimeout(()=>document.getElementById('login-pin').focus(),120);
+}
+
+function showAdminLogin(){
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('screen-admin-login').classList.remove('hidden');
+  document.getElementById('admin-pin-input').value='';
+  document.getElementById('admin-login-err').textContent='';
+  setTimeout(()=>document.getElementById('admin-pin-input').focus(),120);
+}
+
+function attemptDealerLogin(){
+  const pin = document.getElementById('login-pin').value.trim().toUpperCase();
+  const inp = document.getElementById('login-pin');
+  const err = document.getElementById('login-err');
+  if(!pin){ err.textContent='Please enter your PIN.'; return; }
+  const dealer = dbGetDealer(pin);
+  if(!dealer){
+    err.textContent='PIN not recognised. Contact your Rubinet representative.';
+    inp.classList.add('err');
+    setTimeout(()=>inp.classList.remove('err'),600);
+    return;
+  }
+  setSession({role:'dealer', pin});
+  launchDealerApp(dealer);
+}
+
+function attemptAdminLogin(){
+  const pin = document.getElementById('admin-pin-input').value.trim();
+  const inp = document.getElementById('admin-pin-input');
+  const err = document.getElementById('admin-login-err');
+  if(pin !== ADMIN_PIN){
+    err.textContent='Incorrect admin PIN.';
+    inp.classList.add('err');
+    setTimeout(()=>inp.classList.remove('err'),600);
+    return;
+  }
+  document.getElementById('screen-admin-login').classList.add('hidden');
+  document.getElementById('screen-admin').classList.remove('hidden');
+  renderDealerList();
+  renderAdminStats();
+}
+
+function adminLogout(){
+  document.getElementById('screen-admin').classList.add('hidden');
+  showDealerLogin();
+}
+
+function launchDealerApp(dealer){
+  // Hide all auth screens
+  document.getElementById('screen-login').classList.add('hidden');
+  document.getElementById('screen-admin-login').classList.add('hidden');
+  document.getElementById('screen-admin').classList.add('hidden');
+  // Apply dealer profile
+  dealerProfile = {
+    name:  dealer.name,
+    city:  dealer.city,
+    phone: dealer.phone,
+    email: dealer.email,
+    web:   dealer.web || '',
+  };
+  dealerMult = dealer.mult;
+  // Update UI
+  const pct = Math.round(dealer.mult*100);
+  const slid = document.getElementById('mult-slider');
+  if(slid) slid.value = pct;
+  updateMult(pct);
+  updateProfile();
+  // Populate settings fields
+  ['name','city','phone','email','web'].forEach(k=>{
+    const el=document.getElementById('set-'+k);
+    if(el && dealer[k]) el.value = dealer[k];
+  });
+  // Show app
+  document.getElementById('app').classList.remove('hidden');
+  refreshDashboard();
+  // Update sidebar username
+  const sbName = document.getElementById('sb-name');
+  if(sbName) sbName.textContent = dealer.name + (dealer.city?' · '+dealer.city.split(',')[0]:'');
+  const sbAv = document.getElementById('sb-av');
+  if(sbAv) sbAv.textContent = dealer.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+  // Add logout button to sidebar bottom
+  const sbBot = document.querySelector('.sb-bottom');
+  if(sbBot && !document.getElementById('sb-logout')){
+    const lb = document.createElement('button');
+    lb.id='sb-logout';
+    lb.className='ghost';
+    lb.style.cssText='margin-top:10px;font-size:10px;padding:8px;letter-spacing:.06em';
+    lb.textContent='Sign out';
+    lb.onclick = dealerLogout;
+    sbBot.appendChild(lb);
+  }
+}
+
+function dealerLogout(){
+  clearSession();
+  location.reload();
+}
+
+// ════════════════════════════════════════════════════════
+// ADMIN — DEALER CRUD
+// ════════════════════════════════════════════════════════
+function createDealer(){
+  const name    = document.getElementById('nd-name').value.trim();
+  const city    = document.getElementById('nd-city').value.trim();
+  const prov    = document.getElementById('nd-prov').value.trim();
+  const contact = document.getElementById('nd-contact').value.trim();
+  const phone   = document.getElementById('nd-phone').value.trim();
+  const email   = document.getElementById('nd-email').value.trim();
+  const mult    = parseInt(document.getElementById('nd-mult').value)/100;
+  const err     = document.getElementById('nd-err');
+
+  if(!name){ err.textContent='Showroom name is required.'; return; }
+  if(!email){ err.textContent='Email is required.'; return; }
+  err.textContent='';
+
+  const pin = generateDealerPIN();
+  const dealer = {
+    id:      Date.now().toString(36),
+    pin,
+    name, city: city+(prov?', '+prov:''), phone, email, contact,
+    mult, active: true,
+    created: new Date().toISOString(),
+  };
+
+  const dealers = dbGetDealers();
+  dealers.push(dealer);
+  dbSaveDealers(dealers);
+
+  // Show welcome card
+  showWelcomeCard(dealer);
+  renderDealerList();
+  renderAdminStats();
+
+  // Clear form
+  ['nd-name','nd-city','nd-prov','nd-contact','nd-phone','nd-email'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('nd-mult').value=60;
+  document.getElementById('nd-mult-val').textContent='60%';
+
+  showToast('Dealer created — PIN: '+pin);
+}
+
+function toggleDealerActive(id){
+  const dealers = dbGetDealers();
+  const d = dealers.find(x=>x.id===id);
+  if(d){ d.active=!d.active; dbSaveDealers(dealers); }
+  renderDealerList();
+  renderAdminStats();
+  showToast(d ? (d.active?'Dealer reactivated':'Dealer deactivated') : 'Error');
+}
+
+function deleteDealer(id){
+  if(!confirm('Permanently delete this dealer? Their PIN will stop working immediately.')) return;
+  const dealers = dbGetDealers().filter(d=>d.id!==id);
+  dbSaveDealers(dealers);
+  renderDealerList();
+  renderAdminStats();
+  showToast('Dealer deleted');
+}
+
+function editDealerMult(id){
+  const dealers = dbGetDealers();
+  const d = dealers.find(x=>x.id===id);
+  if(!d) return;
+  const val = prompt('New net multiplier for '+d.name+' (enter a number 40–80):', Math.round(d.mult*100));
+  if(val===null) return;
+  const n = parseInt(val);
+  if(isNaN(n)||n<40||n>80){ showToast('Enter a value between 40 and 80'); return; }
+  d.mult = n/100;
+  dbSaveDealers(dealers);
+  renderDealerList();
+  renderAdminStats();
+  showToast('Multiplier updated to '+n+'%');
+}
+
+function renderDealerList(){
+  const dealers = dbGetDealers();
+  const el = document.getElementById('dealer-list');
+  if(!dealers.length){
+    el.innerHTML='<div style="padding:20px;color:var(--stone);font-size:12px;text-align:center">No dealers yet — add one above</div>';
+    return;
+  }
+  el.innerHTML = dealers.map(d=>`
+    <div class="dealer-row">
+      <div>
+        <div class="dn">${d.name}</div>
+        <div class="ds">${d.city||''}</div>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--silver)">${d.contact||d.email||'—'}</div>
+        <div class="ds">${d.phone||''}</div>
+      </div>
+      <div>
+        <div class="dm" style="cursor:pointer" title="Click to edit" onclick="editDealerMult('${d.id}')">${Math.round(d.mult*100)}% ✎</div>
+        <div class="ds" style="font-size:10px;letter-spacing:.1em">PIN: ${d.pin}</div>
+      </div>
+      <div><span class="${d.active?'pill-active':'pill-inactive'}">${d.active?'Active':'Inactive'}</span></div>
+      <div class="d-actions">
+        <button class="btn btn-ghost btn-sm" onclick="showWelcomeCard(dbGetDealers().find(x=>x.id==='${d.id}'))" title="Show welcome card">
+          <svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleDealerActive('${d.id}')" title="${d.active?'Deactivate':'Reactivate'}">
+          ${d.active
+            ? '<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+            : '<svg viewBox="0 0 24 24" style="width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><polyline points="20 6 9 17 4 12"/></svg>'}
+        </button>
+        <button class="btn btn-ghost btn-sm" style="color:#C47A7A;border-color:rgba(124,58,58,.3)" onclick="deleteDealer('${d.id}')" title="Delete">✕</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAdminStats(){
+  const dealers = dbGetDealers();
+  const active  = dealers.filter(d=>d.active).length;
+  const avg     = active ? Math.round(dealers.filter(d=>d.active).reduce((a,d)=>a+d.mult,0)/active*100) : 0;
+  document.getElementById('adm-total').textContent    = dealers.length || '—';
+  document.getElementById('adm-active').textContent   = active || '—';
+  document.getElementById('adm-inactive').textContent = (dealers.length-active) || '—';
+  document.getElementById('adm-avg').textContent      = active ? avg+'%' : '—';
+}
+
+// ════════════════════════════════════════════════════════
+// WELCOME CARD
+// ════════════════════════════════════════════════════════
+function showWelcomeCard(dealer){
+  if(!dealer) return;
+  window._welcomeDealer = dealer; // store for emailWelcomeCard
+  document.getElementById('wcard-panel').style.display='block';
+  document.getElementById('wc-name').textContent = dealer.name;
+  document.getElementById('wc-city').textContent = dealer.city || '';
+  document.getElementById('wc-pin').textContent  = dealer.pin;
+  // Scroll into view
+  document.getElementById('wcard-panel').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function printWelcomeCard(){
+  const card = document.getElementById('wcard').outerHTML;
+  const win  = window.open('','_blank');
+  win.document.write(`<!DOCTYPE html><html><head><title>Rubinet Dealer Welcome Card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#C4A35A;--gold-lt:#DFC08A;--gold-dk:#8A6E3A;--gold-dim:rgba(196,163,90,.1);--gold-border:rgba(196,163,90,.28);
+    --dark:#0E0D0B;--ink:#151310;--carbon:#1E1C18;--border:rgba(255,255,255,.07);--stone:#5A5650;--pewter:#8A857E;--silver:#C2BAB0;--cream:#EAE4DA;
+    --fd:'Cormorant Garamond',serif;--fb:'Jost',sans-serif;--r:10px}
+    body{background:#1a1814;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:var(--fb);padding:40px}
+    .wcard-wrap{background:var(--ink);border:1px solid var(--gold-border);border-radius:12px;padding:32px;max-width:440px;width:100%;position:relative;overflow:hidden;color:var(--cream)}
+    .wcard-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--gold-dk),var(--gold),var(--gold-dk))}
+    .wcard-logo{font-family:var(--fd);font-size:26px;font-weight:300;letter-spacing:.18em;color:#fff;margin-bottom:2px}
+    .wcard-tag{font-size:8px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+    .wcard-dealer{font-size:17px;color:var(--cream);font-weight:400;margin-bottom:2px}
+    .wcard-city{font-size:12px;color:var(--stone);margin-bottom:20px}
+    .wcard-pin-lbl{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone);margin-bottom:5px}
+    .wcard-pin{font-family:var(--fd);font-size:52px;font-weight:400;color:var(--gold);letter-spacing:.3em;margin-bottom:8px}
+    .wcard-note{font-size:11px;color:var(--stone);line-height:1.7;margin-bottom:20px}
+    .wcard-contact{font-size:11px;color:var(--pewter);line-height:1.9;border-top:1px solid rgba(255,255,255,.07);padding-top:14px}
+    @media print{body{background:none}}
+  </style></head><body>${card}</body></html>`);
+  win.document.close();
+  setTimeout(()=>win.print(),400);
+}
+
+function openMailto(url){
+  const a = document.createElement('a');
+  a.href = url;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(), 200);
+}
+
+function emailWelcomeCard(){
+  const dealer = window._welcomeDealer;
+  if(!dealer){ showToast('No dealer selected'); return; }
+  const name  = dealer.name;
+  const pin   = dealer.pin;
+  const email = dealer.email || '';
+  if(!email){ showToast('No email address on file for this dealer'); return; }
+  const body = encodeURIComponent(
+`Dear ${name},
+
+Welcome to the Rubinet Dealer Quote Builder.
+
+Your dealership has been set up with access to Rubinet's professional quoting tool. Use it to generate accurate, branded quotes for your clients with real 2023 CAD pricing.
+
+YOUR DEALER PIN: ${pin}
+
+To access the app:
+1. Visit: https://kcorerd-bot.github.io/Rubinet-App
+2. Enter your PIN: ${pin}
+3. Your showroom profile and pricing are pre-loaded
+
+Keep this PIN confidential. If you need to reset it, contact your Rubinet representative.
+
+---
+Rubinet Faucet Company Ltd.
+10 Corstate Ave, Concord ON L4K 4X2
+Aldo Marchese · amarchese@rubinet.com · (416) 709-1010
+Frank Luisi · fluisi@rubinet.com · (416) 727-6669`);
+  openMailto('mailto:'+email+'?subject='+encodeURIComponent('Rubinet Quote Builder — Your Dealer Access PIN')+'&body='+body);
+  showToast('Email client opened');
+}
+
+function smsWelcomeCard(){
+  const dealer = window._welcomeDealer;
+  if(!dealer){ showToast('No dealer selected'); return; }
+  const phone = dealer.phone || '';
+  if(!phone){ showToast('No phone number on file for this dealer'); return; }
+  const digits = phone.replace(/\D/g,'');
+  const msg =
+`Hi ${dealer.name}, your Rubinet Dealer Quote Builder PIN is: ${dealer.pin}
+
+Access at https://kcorerd-bot.github.io/Rubinet-App — your showroom profile and pricing are pre-loaded.
+
+Questions? Call Aldo (416) 709-1010 or Frank (416) 727-6669.`;
+  // iOS requires & separator, Android uses ?
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const sep = isIOS ? '&' : '?';
+  const link = `sms:${digits}${sep}body=${encodeURIComponent(msg)}`;
+  const a = document.createElement('a');
+  a.href = link;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>a.remove(), 300);
+  showToast('Messaging app opened');
+}
+
+function clientDecline(){
+  const q = window._clientQuoteData;
+  if(!q) return;
+  const dealerEmail = q.dealer?.email || '';
+  const subject = encodeURIComponent('Quote Changes Requested — ' + q.ref + ' · ' + q.client);
+  const body = encodeURIComponent(
+`Hi ${q.dealer?.name||''},
+
+${q.contact||q.client} would like to request some changes to quote ${q.ref}.
+
+Quote total: $${(q.listTotal||0).toLocaleString()} CAD
+
+Please add your requested changes below and send this email:
+
+[Your requested changes here]
+
+Thank you`);
+  openMailto('mailto:'+dealerEmail+'?subject='+subject+'&body='+body);
+}
+
+// ════════════════════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════════════════════
+bootApp();
+</script>
+</body>
+</html>
